@@ -1,0 +1,6 @@
+server:
+  port: 8234
+spring:
+  application:
+    name: Evolutionary_AI_model
+

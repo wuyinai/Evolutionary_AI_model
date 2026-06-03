@@ -1,6 +1,5 @@
 package com.example.evolutionary_ai_model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -18,7 +17,7 @@ public class SysUserRole implements Serializable {
     private static final long serialVersionUID = 1L;
 
     //主键ID，自增
-    @TableId(type = IdType.AUTO)
+    @TableId
     private Long id;
 
     //用户ID

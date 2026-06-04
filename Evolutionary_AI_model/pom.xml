@@ -27,8 +27,23 @@
         <url/>
     </scm>
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
+        <spring-ai.version>1.0.6</spring-ai.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--Spring AI BOM，统一管理Spring AI各模块版本-->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -91,6 +106,16 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>0.12.6</version>
             <scope>runtime</scope>
+        </dependency>
+        <!--Spring AI OpenAI模型Starter，支持OpenAI及兼容API（如DeepSeek、通义千问等）-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+        <!--Spring AI 对话记忆Starter，支持多轮对话上下文记忆-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-chat-memory</artifactId>
         </dependency>
     </dependencies>
 

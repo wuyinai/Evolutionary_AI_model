@@ -16,6 +16,7 @@ public final class SecurityConstants {
             "/swagger-resources/**",
             "/favicon.ico",
             "/hello",
+            "/chat/test",
     };
     //JWT令牌中存储的声明字段名
     public static final String TOKEN_CLAIM_USERID = "userId";

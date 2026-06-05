@@ -47,17 +47,27 @@ export const useConversationStore = defineStore('conversation', () => {
 
   /**
    * 添加消息到当前对话
+   * @param content 消息内容
+   * @param role 消息角色
+   * @param customId 自定义消息ID（可选，用于流式输出）
+   * @param isStreaming 是否正在流式输出（可选）
    */
-  const addMessage = (content: string, role: 'user' | 'assistant') => {
+  const addMessage = (
+    content: string,
+    role: 'user' | 'assistant',
+    customId?: string,
+    isStreaming?: boolean,
+  ) => {
     if (!currentConversation.value) {
       currentConversation.value = createConversation()
     }
 
     const message: Message = {
-      id: generateId(),
+      id: customId || generateId(),
       role,
       content,
       timestamp: new Date(),
+      isStreaming: isStreaming || false,
     }
 
     currentConversation.value.messages.push(message)

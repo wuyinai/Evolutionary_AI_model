@@ -16,7 +16,7 @@ public final class SecurityConstants {
             "/swagger-resources/**",
             "/favicon.ico",
             "/hello",
-            "/chat/test",
+            "/chat/**",  // 对话接口允许匿名访问（测试用）
     };
     //JWT令牌中存储的声明字段名
     public static final String TOKEN_CLAIM_USERID = "userId";

@@ -8,6 +8,7 @@ export interface Message {
   role: MessageRole
   content: string
   timestamp: Date
+  isStreaming?: boolean // 是否正在流式输出
 }
 
 export interface Conversation {
@@ -24,18 +25,23 @@ export interface ConversationGroup {
   conversations: Conversation[]
 }
 
+// 用于API请求的消息格式
+export interface ChatMessageDTO {
+  role: string
+  content: string
+}
+
 export interface SendMessageRequest {
   conversationId?: string
   message: string
   mode: ConversationMode
+  history?: ChatMessageDTO[]
 }
 
 export interface SendMessageResponse {
-  code: number
-  message: string
-  data: {
-    messageId: string
-    content: string
-    timestamp: string
-  }
+  conversationId: string
+  messageId: string
+  content: string
+  mode: string
+  timestamp: number
 }

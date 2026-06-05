@@ -6,7 +6,9 @@
           <svg class="title-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
-          <h1 class="main-title text-3xl font-bold">使用快速模式开始对话</h1>
+          <h1 class="main-title text-3xl font-bold">
+            {{ currentMode === 'quick' ? '使用快速模式开始对话' : '使用专家模式开始对话' }}
+          </h1>
         </div>
 
         <div class="mode-toggle">
@@ -33,7 +35,7 @@
         </div>
       </div>
 
-      <div class="messages-container">
+      <div class="messages-container" ref="messagesContainer">
         <div v-if="messages.length === 0" class="empty-state">
           <p class="text-secondary text-lg">开始您的对话吧！</p>
         </div>
@@ -46,6 +48,8 @@
           >
             <div class="message-content">
               {{ message.content }}
+              <!-- 流式输出时显示闪烁的光标 -->
+              <span v-if="message.isStreaming" class="streaming-cursor">▊</span>
             </div>
           </div>
         </div>
@@ -78,11 +82,12 @@
             </button>
           </div>
         </div>
-        <button class="send-btn btn btn-primary" @click="sendMessage" :disabled="!inputMessage.trim()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="send-btn btn btn-primary" @click="sendMessage" :disabled="!inputMessage.trim() || isLoading">
+          <svg v-if="!isLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="22" y1="2" x2="11" y2="13"></line>
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
+          <span v-else class="loading-spinner"></span>
         </button>
       </div>
     </div>
@@ -90,8 +95,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useConversationStore } from '@/stores/conversation'
+import { streamChat } from '@/utils/chat'
+import type { ChatMessageDTO } from '@/types/conversation'
 
 const conversationStore = useConversationStore()
 
@@ -99,24 +106,125 @@ const currentMode = computed(() => conversationStore.currentMode)
 const messages = computed(() => conversationStore.currentConversation?.messages || [])
 
 const inputMessage = ref('')
+const isLoading = ref(false)
+const messagesContainer = ref<HTMLElement | null>(null)
+
+// 当前正在流式输出的消息ID
+const streamingMessageId = ref<string | null>(null)
 
 const toggleMode = (mode: 'quick' | 'expert') => {
   conversationStore.toggleMode(mode)
 }
 
-const sendMessage = () => {
-  if (!inputMessage.value.trim()) return
+// 滚动到底部
+const scrollToBottom = async () => {
+  await nextTick()
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+const sendMessage = async () => {
+  if (!inputMessage.value.trim() || isLoading.value) return
+
+  const userMessage = inputMessage.value.trim()
+  isLoading.value = true
 
   // 添加用户消息
-  conversationStore.addMessage(inputMessage.value.trim(), 'user')
+  conversationStore.addMessage(userMessage, 'user')
+  scrollToBottom()
 
   // 清空输入框
   inputMessage.value = ''
 
-  // 模拟 AI 回复（实际项目中应该调用后端 API）
-  setTimeout(() => {
-    conversationStore.addMessage('这是一个模拟的 AI 回复。在实际项目中，这里会调用后端 API 获取真实的 AI 响应。', 'assistant')
-  }, 1000)
+  // 创建一个临时的AI消息用于流式输出
+  const tempMessageId = Date.now().toString(36) + Math.random().toString(36).substr(2)
+  conversationStore.addMessage('', 'assistant', tempMessageId, true)
+  streamingMessageId.value = tempMessageId
+  scrollToBottom()
+
+  // 构建历史消息（排除正在流式输出的消息）
+  const history: ChatMessageDTO[] = messages.value
+    .filter((msg) => msg.id !== tempMessageId) // 排除临时消息
+    .slice(-10)
+    .map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }))
+
+  // 流式内容累积
+  let accumulatedContent = ''
+
+  try {
+    // 使用流式对话API
+    await streamChat(
+      {
+        conversationId: conversationStore.currentConversation?.id,
+        message: userMessage,
+        mode: currentMode.value,
+        history,
+      },
+      // onMessage: 每次收到新内容块
+      (chunk: string) => {
+        accumulatedContent += chunk
+        // 更新临时消息的内容
+        if (streamingMessageId.value && conversationStore.currentConversation) {
+          const msgIndex = conversationStore.currentConversation.messages.findIndex(
+            (m) => m.id === streamingMessageId.value,
+          )
+          if (msgIndex !== -1) {
+            conversationStore.currentConversation.messages[msgIndex].content = accumulatedContent
+          }
+        }
+        scrollToBottom()
+      },
+      // onError: 发生错误
+      (error: Error) => {
+        console.error('流式对话错误:', error)
+        // 更新临时消息为错误信息
+        if (streamingMessageId.value && conversationStore.currentConversation) {
+          const msgIndex = conversationStore.currentConversation.messages.findIndex(
+            (m) => m.id === streamingMessageId.value,
+          )
+          if (msgIndex !== -1) {
+            conversationStore.currentConversation.messages[msgIndex].content = `错误: ${error.message}`
+            conversationStore.currentConversation.messages[msgIndex].isStreaming = false
+          }
+        }
+        isLoading.value = false
+        streamingMessageId.value = null
+      },
+      // onComplete: 流式完成
+      () => {
+        // 标记消息完成
+        if (streamingMessageId.value && conversationStore.currentConversation) {
+          const msgIndex = conversationStore.currentConversation.messages.findIndex(
+            (m) => m.id === streamingMessageId.value,
+          )
+          if (msgIndex !== -1) {
+            conversationStore.currentConversation.messages[msgIndex].isStreaming = false
+          }
+        }
+        isLoading.value = false
+        streamingMessageId.value = null
+        scrollToBottom()
+      },
+    )
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    // 更新临时消息为错误信息
+    if (streamingMessageId.value && conversationStore.currentConversation) {
+      const msgIndex = conversationStore.currentConversation.messages.findIndex(
+        (m) => m.id === streamingMessageId.value,
+      )
+      if (msgIndex !== -1) {
+        conversationStore.currentConversation.messages[msgIndex].content = '网络错误，请稍后重试'
+        conversationStore.currentConversation.messages[msgIndex].isStreaming = false
+      }
+    }
+    isLoading.value = false
+    streamingMessageId.value = null
+  }
 }
 </script>
 
@@ -226,6 +334,24 @@ const sendMessage = () => {
 .message-content {
   color: var(--color-text);
   line-height: 1.6;
+  word-break: break-word;
+}
+
+/* 流式输出时的闪烁光标 */
+.streaming-cursor {
+  display: inline-block;
+  animation: blink 1s infinite;
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
 }
 
 .input-section {
@@ -285,5 +411,20 @@ const sendMessage = () => {
 .send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-background);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

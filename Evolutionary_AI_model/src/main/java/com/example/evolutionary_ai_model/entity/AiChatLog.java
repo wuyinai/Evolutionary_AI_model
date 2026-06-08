@@ -1,6 +1,8 @@
 package com.example.evolutionary_ai_model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
  * 用法：AI调用日志实体类，记录每次AI模型调用的详细信息。
  * 位于数据访问层，映射数据库表 ai_chat_log。
  * 包含请求内容、响应内容、Token统计、耗时、费用等信息，用于审计和分析。
+ * ID字段使用ToStringSerializer序列化，避免JavaScript精度丢失。
  */
 @Data
 @TableName("ai_chat_log")
@@ -18,14 +21,16 @@ public class AiChatLog implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    // 主键ID
+    // 主键ID（序列化为String，避免JS精度丢失）
+    @JsonSerialize(using = ToStringSerializer.class)
     @TableId
     private Long id;
 
     // 追踪ID（用于链路追踪）
     private String traceId;
 
-    // 模型配置ID，关联ai_model_config.id
+    // 模型配置ID，关联ai_model_config.id（序列化为String）
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long configId;
 
     // 供应商编码
@@ -34,7 +39,8 @@ public class AiChatLog implements Serializable {
     // 使用的模型名称
     private String modelName;
 
-    // 调用用户ID
+    // 调用用户ID（序列化为String）
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long userId;
 
     // 调用用户名

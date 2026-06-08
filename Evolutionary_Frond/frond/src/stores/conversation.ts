@@ -20,12 +20,13 @@ export const useConversationStore = defineStore('conversation', () => {
   /**
    * 创建新对话
    */
-  const createConversation = (title: string = '新对话'): Conversation => {
+  const createConversation = (title: string = '新对话', pinnedConfigId?: string): Conversation => {
     const newConversation: Conversation = {
       id: generateId(),
       title,
       mode: currentMode.value,
       messages: [],
+      pinnedConfigId,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -93,6 +94,44 @@ export const useConversationStore = defineStore('conversation', () => {
   }
 
   /**
+   * 钉选模型到当前对话
+   */
+  const pinModelToConversation = (configId: string) => {
+    if (currentConversation.value) {
+      currentConversation.value.pinnedConfigId = configId
+      currentConversation.value.updatedAt = new Date()
+    }
+  }
+
+  /**
+   * 取消钉选模型
+   */
+  const unpinModel = () => {
+    if (currentConversation.value) {
+      currentConversation.value.pinnedConfigId = undefined
+      currentConversation.value.updatedAt = new Date()
+    }
+  }
+
+  /**
+   * 获取当前对话钉选的模型配置ID
+   */
+  const getPinnedConfigId = (): string | undefined => {
+    return currentConversation.value?.pinnedConfigId
+  }
+
+  /**
+   * 更新对话标题
+   */
+  const updateTitle = (id: string, title: string) => {
+    const conversation = conversations.value.find((c) => c.id === id)
+    if (conversation) {
+      conversation.title = title
+      conversation.updatedAt = new Date()
+    }
+  }
+
+  /**
    * 按日期分组对话
    */
   const groupedConversations = computed<ConversationGroup[]>(() => {
@@ -149,5 +188,9 @@ export const useConversationStore = defineStore('conversation', () => {
     selectConversation,
     addMessage,
     deleteConversation,
+    pinModelToConversation,
+    unpinModel,
+    getPinnedConfigId,
+    updateTitle,
   }
 })

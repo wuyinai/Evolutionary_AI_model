@@ -10,7 +10,7 @@ import {
   deleteModelConfig,
   testModelConnection,
 } from '@/utils/modelConfig'
-import type { AiModelConfigVO, AiModelProviderVO, AiModelConfigAddForm } from '@/types/modelConfig'
+import type { AiModelConfigVO, AiModelProviderVO, AiModelConfigAddDTO } from '@/types/modelConfig'
 
 export const useModelConfigStore = defineStore('modelConfig', () => {
   // 状态
@@ -71,7 +71,7 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
   /**
    * 添加模型配置
    */
-  const addConfig = async (form: AiModelConfigAddForm): Promise<boolean> => {
+  const addConfig = async (form: AiModelConfigAddDTO): Promise<boolean> => {
     isLoading.value = true
     try {
       const response = await addModelConfig(form)

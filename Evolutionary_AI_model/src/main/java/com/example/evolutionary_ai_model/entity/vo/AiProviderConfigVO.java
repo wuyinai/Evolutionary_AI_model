@@ -4,60 +4,53 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 用法：模型配置返回VO，用于返回模型配置信息给前端。
- * API密钥字段已脱敏，不返回完整密钥。
+ * 用法：AI供应商配置VO，用于返回给前端的供应商配置信息。
+ * 不包含敏感信息（如完整的API密钥），只返回脱敏后的密钥。
  * ID字段使用ToStringSerializer序列化，避免JavaScript精度丢失。
  */
 @Data
-public class AiModelConfigVO {
+public class AiProviderConfigVO {
 
     // 配置ID（序列化为String，避免JS精度丢失）
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
-    // 配置名称
+    // 配置名称（用户自定义）
     private String configName;
 
-    // 供应商配置ID（序列化为String）
+    // 供应商ID（序列化为String）
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long providerConfigId;
+    private Long providerId;
+
+    // 供应商编码
+    private String providerCode;
 
     // 供应商名称
     private String providerName;
 
-    // 模型名称
-    private String modelName;
+    // 协议类型
+    private String protocolType;
 
-    // 模型别名
-    private String modelAlias;
+    // API密钥（脱敏显示，如：sk-***xxx）
+    private String apiKeyMasked;
 
-    // 温度参数
-    private BigDecimal temperature;
+    // API端点地址
+    private String apiEndpoint;
 
-    // 最大输出Token数
-    private Integer maxTokens;
-
-    // 是否默认模型
+    // 是否默认配置：0-否 1-是
     private Integer isDefault;
 
-    // 是否启用流式输出
-    private Integer isStreamingEnabled;
-
-    // 状态
+    // 状态：0-禁用 1-启用
     private Integer status;
-
-    // 累计调用次数
-    private Long usedCount;
-
-    // 最后使用时间
-    private LocalDateTime lastUsedTime;
 
     // 创建时间
     private LocalDateTime createTime;
+
+    // 更新时间
+    private LocalDateTime updateTime;
 
     // 备注
     private String remark;

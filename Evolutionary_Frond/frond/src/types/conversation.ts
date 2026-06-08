@@ -16,6 +16,7 @@ export interface Conversation {
   title: string
   mode: ConversationMode
   messages: Message[]
+  pinnedConfigId?: string // 钉选的模型配置ID（新功能）
   createdAt: Date
   updatedAt: Date
 }
@@ -35,7 +36,7 @@ export interface SendMessageRequest {
   conversationId?: string
   message: string
   mode: ConversationMode
-  configId?: number // 模型配置ID
+  configId?: string // 模型配置ID（使用string类型）
   userId?: number // 用户ID（可选，后端从认证信息获取）
   history?: ChatMessageDTO[]
 }
@@ -46,4 +47,21 @@ export interface SendMessageResponse {
   content: string
   mode: string
   timestamp: number
+}
+
+// 会话管理API请求DTO
+export interface CreateConversationDTO {
+  title?: string
+  mode?: ConversationMode
+  pinnedConfigId?: string // 钉选的模型配置ID
+}
+
+export interface UpdateConversationTitleDTO {
+  conversationId: string
+  title: string
+}
+
+export interface PinModelToConversationDTO {
+  conversationId: string
+  configId: string // 模型配置ID
 }

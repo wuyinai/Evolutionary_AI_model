@@ -12,16 +12,29 @@
       </div>
 
       <div class="modal-body">
+        <!-- Architecture Info Banner -->
+        <div class="architecture-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>新架构：模型配置关联供应商配置，连接信息由供应商配置管理</span>
+        </div>
+
         <form @submit.prevent="handleSubmit">
-          <!-- 选择供应商 -->
+          <!-- 选择供应商配置（新架构） -->
           <div class="form-group">
-            <label class="form-label">供应商</label>
-            <select v-model="form.providerCode" class="form-select" required @change="onProviderChange">
-              <option value="">请选择供应商</option>
-              <option v-for="provider in modelConfigStore.providers" :key="provider.providerCode" :value="provider.providerCode">
-                {{ provider.providerName }}
+            <label class="form-label">供应商配置</label>
+            <select v-model="form.providerConfigId" class="form-select" required @change="onProviderConfigChange">
+              <option value="">请选择供应商配置</option>
+              <option v-for="config in providerConfigStore.providerConfigs" :key="config.id" :value="config.id">
+                {{ config.configName }} ({{ config.providerName }} - {{ config.protocolType }})
               </option>
             </select>
+            <p v-if="!providerConfigStore.hasProviderConfig" class="form-tip warning">
+              暂无供应商配置，请先<a href="#" @click.prevent="goToProviderConfig">创建供应商配置</a>
+            </p>
           </div>
 
           <!-- 配置名称 -->
@@ -31,7 +44,7 @@
               v-model="form.configName"
               type="text"
               class="form-input"
-              placeholder="例如：我的DeepSeek配置"
+              placeholder="例如：我的DeepSeek聊天模型"
               required
             />
           </div>
@@ -49,28 +62,16 @@
             <p class="form-tip">请输入供应商支持的模型名称</p>
           </div>
 
-          <!-- API密钥 -->
+          <!-- 模型别名（可选） -->
           <div class="form-group">
-            <label class="form-label">API密钥</label>
+            <label class="form-label">模型别名（可选）</label>
             <input
-              v-model="form.apiKey"
-              type="password"
-              class="form-input"
-              placeholder="sk-xxxxxxxxxxxxx"
-              required
-            />
-          </div>
-
-          <!-- API端点（可选） -->
-          <div class="form-group">
-            <label class="form-label">API端点（可选）</label>
-            <input
-              v-model="form.apiEndpoint"
+              v-model="form.modelAlias"
               type="text"
               class="form-input"
-              :placeholder="defaultEndpointPlaceholder"
+              placeholder="例如：DeepSeek聊天助手"
             />
-            <p class="form-tip">留空将使用供应商默认端点</p>
+            <p class="form-tip">自定义显示名称，便于识别</p>
           </div>
 
           <!-- 温度参数 -->
@@ -90,12 +91,63 @@
             <p class="form-tip">值越高回复越随机，值越低回复越确定</p>
           </div>
 
+          <!-- 最大Token数 -->
+          <div class="form-group">
+            <label class="form-label">最大输出Token数</label>
+            <input
+              v-model.number="form.maxTokens"
+              type="number"
+              class="form-input"
+              placeholder="例如：4096"
+              min="1"
+              max="128000"
+            />
+            <p class="form-tip">限制模型输出的最大Token数量</p>
+          </div>
+
+          <!-- Top-P参数 -->
+          <div class="form-group">
+            <label class="form-label">Top-P采样参数</label>
+            <div class="temperature-slider">
+              <input
+                v-model.number="form.topP"
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                class="slider"
+              />
+              <span class="temperature-value">{{ form.topP }}</span>
+            </div>
+            <p class="form-tip">控制采样的多样性，建议与温度参数调整其中一个</p>
+          </div>
+
+          <!-- 是否启用流式输出 -->
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input v-model="form.isStreamingEnabled" type="checkbox" :true-value="1" :false-value="0" />
+              <span>启用流式输出</span>
+            </label>
+            <p class="form-tip">实时返回AI回复内容</p>
+          </div>
+
           <!-- 设为默认 -->
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
               <input v-model="form.isDefault" type="checkbox" :true-value="1" :false-value="0" />
               <span>设为默认模型</span>
             </label>
+          </div>
+
+          <!-- 备注 -->
+          <div class="form-group">
+            <label class="form-label">备注（可选）</label>
+            <textarea
+              v-model="form.remark"
+              class="form-textarea"
+              rows="2"
+              placeholder="可选备注信息"
+            ></textarea>
           </div>
         </form>
       </div>
@@ -112,9 +164,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useModelConfigStore } from '@/stores/modelConfig'
-import type { AiModelConfigAddForm } from '@/types/modelConfig'
+import { useProviderConfigStore } from '@/stores/providerConfig'
+import type { AiModelConfigAddDTO } from '@/types/modelConfig'
+
+// Router
+const router = useRouter()
 
 // Emits
 const emit = defineEmits<{
@@ -122,50 +179,54 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
+// Stores
 const modelConfigStore = useModelConfigStore()
+const providerConfigStore = useProviderConfigStore()
 
-const form = ref<AiModelConfigAddForm>({
+// Form data (new architecture)
+const form = ref<AiModelConfigAddDTO>({
   configName: '',
-  providerCode: '',
+  providerConfigId: '',
   modelName: '',
-  apiKey: '',
-  apiEndpoint: '',
+  modelAlias: '',
   temperature: 0.7,
+  maxTokens: 4096,
+  topP: 1.0,
   isDefault: 0,
   isStreamingEnabled: 1,
+  remark: '',
 })
 
 const isSubmitting = ref(false)
 
-// 默认端点提示
-const defaultEndpointPlaceholder = computed(() => {
-  const provider = modelConfigStore.providers.find(p => p.providerCode === form.value.providerCode)
-  return provider ? provider.defaultEndpoint : '请先选择供应商'
-})
-
-// 供应商变更时自动填充默认端点
-const onProviderChange = () => {
-  const provider = modelConfigStore.providers.find(p => p.providerCode === form.value.providerCode)
-  if (provider) {
-    form.value.apiEndpoint = provider.defaultEndpoint
-    // 自动填充配置名称
+// Provider config change handler
+const onProviderConfigChange = () => {
+  const config = providerConfigStore.providerConfigs.find(c => c.id === form.value.providerConfigId)
+  if (config) {
+    // Auto-fill config name
     if (!form.value.configName) {
-      form.value.configName = `我的${provider.providerName}配置`
+      form.value.configName = `我的${config.providerName}模型`
     }
   }
 }
 
-// 关闭弹窗
+// Navigate to provider config page
+const goToProviderConfig = () => {
+  close()
+  router.push('/provider-config')
+}
+
+// Close modal
 const close = () => {
   emit('close')
 }
 
-// 提交表单
+// Submit handler
 const handleSubmit = async () => {
   if (isSubmitting.value) return
 
-  // 验证必填字段
-  if (!form.value.providerCode || !form.value.configName || !form.value.modelName || !form.value.apiKey) {
+  // Validation
+  if (!form.value.providerConfigId || !form.value.configName || !form.value.modelName) {
     alert('请填写所有必填字段')
     return
   }
@@ -176,6 +237,7 @@ const handleSubmit = async () => {
     const success = await modelConfigStore.addConfig(form.value)
     if (success) {
       emit('success')
+      close()
     } else {
       alert('添加失败，请稍后重试')
     }
@@ -186,6 +248,11 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
+
+// Initialize
+onMounted(async () => {
+  await providerConfigStore.init()
+})
 </script>
 
 <style scoped>
@@ -203,12 +270,15 @@ const handleSubmit = async () => {
 }
 
 .modal-container {
-  width: 480px;
+  width: 520px;
   max-width: 90vw;
+  max-height: 90vh;
   border-radius: var(--radius-lg);
   background-color: var(--color-background);
   box-shadow: var(--shadow-xl);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -240,8 +310,26 @@ const handleSubmit = async () => {
 
 .modal-body {
   padding: var(--spacing-lg);
-  max-height: 60vh;
   overflow-y: auto;
+  flex: 1;
+}
+
+/* Architecture Banner */
+.architecture-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+}
+
+.architecture-banner svg {
+  flex-shrink: 0;
 }
 
 .form-group {
@@ -257,7 +345,8 @@ const handleSubmit = async () => {
 }
 
 .form-input,
-.form-select {
+.form-select,
+.form-textarea {
   width: 100%;
   padding: var(--spacing-md);
   border: 1px solid var(--color-border);
@@ -269,12 +358,14 @@ const handleSubmit = async () => {
 }
 
 .form-input:focus,
-.form-select:focus {
+.form-select:focus,
+.form-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
 }
 
-.form-input::placeholder {
+.form-input::placeholder,
+.form-textarea::placeholder {
   color: var(--color-text-tertiary);
 }
 
@@ -282,6 +373,20 @@ const handleSubmit = async () => {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
   margin-top: var(--spacing-xs);
+}
+
+.form-tip.warning {
+  color: var(--color-warning);
+}
+
+.form-tip.warning a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
 }
 
 .temperature-slider {
@@ -316,7 +421,8 @@ const handleSubmit = async () => {
 
 .checkbox-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .checkbox-label {

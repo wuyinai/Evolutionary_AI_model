@@ -59,6 +59,20 @@
         <!-- 模型选择器 -->
         <ModelSelector :disabled="isLoading" @change="onModelChange" />
 
+        <!-- 钉选模型显示 -->
+        <div v-if="pinnedModelInfo" class="pinned-model-info">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
+          </svg>
+          <span class="pinned-text">钉选: {{ pinnedModelInfo.configName }}</span>
+          <button class="unpin-btn" @click="unpinModel" title="取消钉选">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
         <div class="input-container">
           <textarea
             v-model="inputMessage"
@@ -119,15 +133,36 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const streamingMessageId = ref<string | null>(null)
 
 // 当前选中的模型配置ID
-const currentConfigId = ref<string | null>(null) // 使用string类型，避免JS精度丢失
+const currentConfigId = ref<string | null>(null)
+
+// 钉选的模型信息
+const pinnedModelInfo = computed(() => {
+  const pinnedConfigId = conversationStore.getPinnedConfigId()
+  if (pinnedConfigId) {
+    return modelConfigStore.modelConfigs.find((config) => config.id === pinnedConfigId)
+  }
+  return null
+})
 
 const toggleMode = (mode: 'quick' | 'expert') => {
   conversationStore.toggleMode(mode)
 }
 
 // 模型切换处理
-const handleModelChange = (configId: string | null) => { // 使用string类型
+const onModelChange = (configId: string | null) => {
   currentConfigId.value = configId
+}
+
+// 钉选模型到会话
+const pinModel = () => {
+  if (currentConfigId.value) {
+    conversationStore.pinModelToConversation(currentConfigId.value)
+  }
+}
+
+// 取消钉选
+const unpinModel = () => {
+  conversationStore.unpinModel()
 }
 
 // 滚动到底部
@@ -171,8 +206,9 @@ const sendMessage = async () => {
 
   try {
     // 使用流式对话API，传入configId
-    // 获取当前选中的模型配置ID
-    const configId = currentConfigId.value || modelConfigStore.currentModel?.id || null
+    // 优先使用钉选的模型配置ID，其次使用当前选中的模型配置ID，最后使用默认模型
+    const pinnedConfigId = conversationStore.getPinnedConfigId()
+    const configId = pinnedConfigId || currentConfigId.value || modelConfigStore.currentModel?.id || null
     
     await streamChat(
       {
@@ -374,8 +410,43 @@ const sendMessage = async () => {
 
 .input-section {
   display: flex;
+  flex-direction: column;
   gap: var(--spacing-md);
-  align-items: flex-end;
+  align-items: stretch;
+}
+
+/* Pinned Model Info */
+.pinned-model-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+}
+
+.pinned-model-info svg {
+  color: var(--color-warning);
+}
+
+.pinned-text {
+  flex: 1;
+}
+
+.unpin-btn {
+  padding: var(--spacing-xs);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.unpin-btn:hover {
+  color: var(--color-text);
 }
 
 .input-container {

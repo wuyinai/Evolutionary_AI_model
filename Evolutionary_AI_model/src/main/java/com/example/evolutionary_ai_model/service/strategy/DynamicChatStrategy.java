@@ -1,29 +1,29 @@
 package com.example.evolutionary_ai_model.service.strategy;
 
 import cn.hutool.core.util.IdUtil;
+import com.example.evolutionary_ai_model.entity.AiModelConfig;
+import com.example.evolutionary_ai_model.entity.AiProviderConfig;
 import com.example.evolutionary_ai_model.entity.dto.ChatMessageDTO;
 import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
 import com.example.evolutionary_ai_model.entity.dto.ChatResponseDTO;
-import com.example.evolutionary_ai_model.entity.AiModelConfig;
+import com.example.evolutionary_ai_model.entity.enums.ModelProtocol;
+import com.example.evolutionary_ai_model.service.AiConversationService;
 import com.example.evolutionary_ai_model.service.AiModelConfigService;
+import com.example.evolutionary_ai_model.service.AiProviderConfigService;
+import com.example.evolutionary_ai_model.service.factory.ProviderChatModelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 用法：动态模型对话策略实现类，根据用户配置的模型动态创建ChatClient进行对话。
- * 支持用户自定义模型配置，通过configId指定使用的模型。
- * 使用缓存机制避免重复创建ChatClient实例，提高性能。
+ * 用法：动态模型对话策略实现类，根据两级配置和会话钉选动态创建ChatClient进行对话。
+ * 支持会话级模型钉选，优先使用会话钉选的模型配置，确保"用户选什么用什么"。
+ * 使用ProviderChatModelFactory根据协议类型动态构建ChatModel实例。
  */
 @Component
 public class DynamicChatStrategy implements ChatStrategy {
@@ -33,15 +33,21 @@ public class DynamicChatStrategy implements ChatStrategy {
     // 策略标识
     private static final String MODE = "dynamic";
 
-    // ChatClient缓存，避免重复创建
-    private final Map<Long, ChatClient> clientCache = new ConcurrentHashMap<>();
-
     // 模型配置服务
-    private final AiModelConfigService configService;
+    @Autowired
+    private AiModelConfigService modelConfigService;
 
-    public DynamicChatStrategy(AiModelConfigService configService) {
-        this.configService = configService;
-    }
+    // 供应商配置服务
+    @Autowired
+    private AiProviderConfigService providerConfigService;
+
+    // 会话服务
+    @Autowired
+    private AiConversationService conversationService;
+
+    // Provider ChatModel工厂
+    @Autowired
+    private ProviderChatModelFactory chatModelFactory;
 
     @Override
     public String getMode() {
@@ -53,14 +59,20 @@ public class DynamicChatStrategy implements ChatStrategy {
         logger.info("动态模式对话请求，消息内容长度: {}", request.getMessage().length());
 
         try {
-            // 获取模型配置
-            AiModelConfig config = getModelConfig(request);
-            if (config == null) {
+            // 获取模型配置（优先使用会话钉选）
+            AiModelConfig modelConfig = getModelConfig(request);
+            if (modelConfig == null) {
                 throw new RuntimeException("未找到可用的模型配置");
             }
 
-            // 获取或创建ChatClient
-            ChatClient chatClient = getOrCreateClient(config);
+            // 获取供应商配置
+            AiProviderConfig providerConfig = getProviderConfig(modelConfig);
+            if (providerConfig == null) {
+                throw new RuntimeException("未找到可用的供应商配置");
+            }
+
+            // 使用工厂创建ChatClient（根据协议类型动态构建）
+            ChatClient chatClient = chatModelFactory.getOrCreateChatClient(providerConfig, modelConfig);
 
             // 构建提示词
             String prompt = buildPrompt(request.getMessage(), request.getHistory());
@@ -71,7 +83,8 @@ public class DynamicChatStrategy implements ChatStrategy {
                     .call()
                     .content();
 
-            logger.info("动态模式对话成功，配置ID: {}, 响应内容长度: {}", config.getId(), response.length());
+            logger.info("动态模式对话成功，模型配置ID: {}, 供应商配置ID: {}, 响应内容长度: {}", 
+                    modelConfig.getId(), providerConfig.getId(), response.length());
 
             // 构建响应DTO
             return ChatResponseDTO.builder()
@@ -93,14 +106,20 @@ public class DynamicChatStrategy implements ChatStrategy {
         logger.info("动态模式流式对话请求，消息内容长度: {}", request.getMessage().length());
 
         try {
-            // 获取模型配置
-            AiModelConfig config = getModelConfig(request);
-            if (config == null) {
+            // 获取模型配置（优先使用会话钉选）
+            AiModelConfig modelConfig = getModelConfig(request);
+            if (modelConfig == null) {
                 return Flux.error(new RuntimeException("未找到可用的模型配置"));
             }
 
-            // 获取或创建ChatClient
-            ChatClient chatClient = getOrCreateClient(config);
+            // 获取供应商配置
+            AiProviderConfig providerConfig = getProviderConfig(modelConfig);
+            if (providerConfig == null) {
+                return Flux.error(new RuntimeException("未找到可用的供应商配置"));
+            }
+
+            // 使用工厂创建ChatClient
+            ChatClient chatClient = chatModelFactory.getOrCreateChatClient(providerConfig, modelConfig);
 
             // 构建提示词
             String prompt = buildPrompt(request.getMessage(), request.getHistory());
@@ -137,21 +156,31 @@ public class DynamicChatStrategy implements ChatStrategy {
     }
 
     /**
-     * 获取模型配置
+     * 获取模型配置（优先使用会话钉选）
+     * 实现会话级钉选逻辑：用户在聊天界面选择模型后钉选到会话，后续该会话所有消息都用此模型
      * @param request 对话请求
      * @return 模型配置实体
      */
     private AiModelConfig getModelConfig(ChatRequestDTO request) {
-        // 如果指定了configId，使用指定的配置
+        // 优先级1：如果指定了configId，使用指定的配置（显式选择绕过能力路由）
         if (request.getConfigId() != null) {
             logger.info("使用指定模型配置，配置ID: {}", request.getConfigId());
-            return configService.getConfigById(request.getConfigId());
+            return modelConfigService.getConfigById(request.getConfigId());
         }
 
-        // 如果没有configId但有userId，获取用户的默认模型配置
+        // 优先级2：如果有conversationId，检查会话是否钉选了模型
+        if (request.getConversationId() != null) {
+            Long pinnedConfigId = conversationService.getPinnedModelConfigId(request.getConversationId());
+            if (pinnedConfigId != null) {
+                logger.info("使用会话钉选的模型配置，配置ID: {}", pinnedConfigId);
+                return modelConfigService.getConfigById(pinnedConfigId);
+            }
+        }
+
+        // 优先级3：如果没有configId但有userId，获取用户的默认模型配置
         if (request.getUserId() != null) {
             logger.info("获取用户默认模型配置，用户ID: {}", request.getUserId());
-            AiModelConfig defaultConfig = configService.getDefaultConfig(request.getUserId());
+            AiModelConfig defaultConfig = modelConfigService.getDefaultConfig(request.getUserId());
             if (defaultConfig != null) {
                 logger.info("找到用户默认模型配置，配置ID: {}", defaultConfig.getId());
                 return defaultConfig;
@@ -164,140 +193,25 @@ public class DynamicChatStrategy implements ChatStrategy {
     }
 
     /**
-     * 根据配置获取或创建ChatClient（使用缓存）
-     * @param config 模型配置
-     * @return ChatClient实例
+     * 根据模型配置获取关联的供应商配置
+     * @param modelConfig 模型配置
+     * @return 供应商配置实体
      */
-    private ChatClient getOrCreateClient(AiModelConfig config) {
-        return clientCache.computeIfAbsent(config.getId(), id -> {
-            logger.info("创建新的ChatClient实例，配置ID: {}", id);
-            return createChatClient(config);
-        });
-    }
-
-    /**
-     * 根据配置创建ChatClient（使用Spring AI 1.1 Builder模式）
-     * 完全使用用户配置的URL，不做任何自动拼接
-     * @param config 模型配置
-     * @return ChatClient实例
-     */
-    private ChatClient createChatClient(AiModelConfig config) {
-        // 从用户配置的URL中提取baseUrl和path
-        String[] urlParts = splitUrl(config.getApiEndpoint());
-        String baseUrl = urlParts[0];  // 域名部分
-        String customPath = urlParts[1]; // 路径部分
+    private AiProviderConfig getProviderConfig(AiModelConfig modelConfig) {
+        // 通过 providerConfigId 获取供应商配置
+        if (modelConfig.getProviderConfigId() == null) {
+            logger.warn("模型配置缺少供应商配置关联，配置ID: {}", modelConfig.getId());
+            throw new RuntimeException("模型配置未关联供应商配置，请先创建供应商配置");
+        }
         
-        logger.info("用户配置URL: {}, baseUrl: {}, customPath: {}", 
-                config.getApiEndpoint(), baseUrl, customPath);
-
-        // 创建OpenAI API实例
-        OpenAiApi.Builder apiBuilder = OpenAiApi.builder()
-                .baseUrl(baseUrl)
-                .apiKey(config.getApiKey());
-
-        // 设置用户配置的路径（如果有）
-        if (customPath != null && !customPath.isEmpty()) {
-            apiBuilder.completionsPath(customPath);
+        logger.info("通过providerConfigId获取供应商配置，配置ID: {}", modelConfig.getProviderConfigId());
+        AiProviderConfig providerConfig = providerConfigService.getConfigById(modelConfig.getProviderConfigId());
+        
+        if (providerConfig == null) {
+            logger.warn("供应商配置不存在，配置ID: {}", modelConfig.getProviderConfigId());
+            throw new RuntimeException("供应商配置不存在");
         }
-
-        OpenAiApi openAiApi = apiBuilder.build();
-
-        // 构建ChatOptions
-        BigDecimal temperature = config.getTemperature() != null ? config.getTemperature() : new BigDecimal("0.7");
-        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
-                .model(config.getModelName())
-                .temperature(temperature.doubleValue());
-
-        if (config.getMaxTokens() != null) {
-            optionsBuilder.maxTokens(config.getMaxTokens());
-        }
-        if (config.getTopP() != null) {
-            optionsBuilder.topP(config.getTopP().doubleValue());
-        }
-        if (config.getFrequencyPenalty() != null) {
-            optionsBuilder.frequencyPenalty(config.getFrequencyPenalty().doubleValue());
-        }
-        if (config.getPresencePenalty() != null) {
-            optionsBuilder.presencePenalty(config.getPresencePenalty().doubleValue());
-        }
-
-        OpenAiChatOptions options = optionsBuilder.build();
-
-        // 创建ChatModel
-        OpenAiChatModel chatModel = OpenAiChatModel.builder()
-                .openAiApi(openAiApi)
-                .defaultOptions(options)
-                .build();
-
-        return ChatClient.builder(chatModel).build();
-    }
-
-    /**
-     * 将用户配置的URL拆分为baseUrl和path
-     * 完全按照用户配置使用，不做任何自动拼接
-     * 
-     * @param fullUrl 用户配置的完整URL
-     * @return 数组：[baseUrl, path]
-     *         baseUrl - 域名部分，如 "https://dashscope.aliyuncs.com"
-     *         path - 路径部分，如 "/compatible-mode/v1/chat/completions"，如果没有路径则为null
-     */
-    private String[] splitUrl(String fullUrl) {
-        if (fullUrl == null || fullUrl.isEmpty()) {
-            return new String[]{fullUrl, null};
-        }
-
-        // 去除末尾斜杠
-        String url = fullUrl.endsWith("/") ? fullUrl.substring(0, fullUrl.length() - 1) : fullUrl;
-
-        try {
-            // 查找协议结束位置
-            int schemeEnd = url.indexOf("://");
-            if (schemeEnd <= 0) {
-                // 没有协议，直接返回
-                return new String[]{url, null};
-            }
-
-            // 提取协议后的部分
-            String afterScheme = url.substring(schemeEnd + 3);
-            
-            // 查找第一个斜杠（路径开始位置）
-            int pathStart = afterScheme.indexOf("/");
-            
-            if (pathStart <= 0) {
-                // 没有路径部分，只有域名
-                // 例如：https://api.deepseek.com
-                return new String[]{url, null};
-            }
-
-            // 有路径部分，拆分域名和路径
-            // 例如：https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-            // baseUrl: https://dashscope.aliyuncs.com
-            // path: /compatible-mode/v1/chat/completions
-            String domain = url.substring(0, schemeEnd + 3 + pathStart);
-            String path = afterScheme.substring(pathStart);
-            
-            return new String[]{domain, path};
-            
-        } catch (Exception e) {
-            logger.warn("URL拆分失败: {}, 错误: {}", fullUrl, e.getMessage());
-            return new String[]{fullUrl, null};
-        }
-    }
-
-    /**
-     * 清除指定配置的缓存（配置更新时调用）
-     * @param configId 配置ID
-     */
-    public void clearCache(Long configId) {
-        clientCache.remove(configId);
-        logger.info("清除ChatClient缓存，配置ID: {}", configId);
-    }
-
-    /**
-     * 清除所有缓存
-     */
-    public void clearAllCache() {
-        clientCache.clear();
-        logger.info("清除所有ChatClient缓存");
+        
+        return providerConfig;
     }
 }

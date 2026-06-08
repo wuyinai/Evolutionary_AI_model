@@ -1,6 +1,8 @@
 package com.example.evolutionary_ai_model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -10,6 +12,7 @@ import java.time.LocalDateTime;
  * 用法：AI模型供应商实体类，存储AI服务供应商的基本信息。
  * 位于数据访问层，映射数据库表 ai_model_provider。
  * 包含供应商编码、名称、API端点、支持能力等配置信息。
+ * ID字段使用ToStringSerializer序列化，避免JavaScript精度丢失。
  */
 @Data
 @TableName("ai_model_provider")
@@ -17,7 +20,8 @@ public class AiModelProvider implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    // 主键ID
+    // 主键ID（序列化为String，避免JS精度丢失）
+    @JsonSerialize(using = ToStringSerializer.class)
     @TableId
     private Long id;
 

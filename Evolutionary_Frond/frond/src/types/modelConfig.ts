@@ -4,15 +4,15 @@
 export interface AiModelConfigVO {
   id: string // ID使用string类型，避免JS精度丢失
   configName: string
-  providerId: string
-  providerCode: string
+  providerConfigId: string // 供应商配置ID
   providerName: string
   modelName: string
   modelAlias: string | null
-  apiKeyMasked: string
-  apiEndpoint: string
   temperature: number
   maxTokens: number | null
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
   isDefault: number
   isStreamingEnabled: number
   status: number
@@ -41,15 +41,16 @@ export interface AiModelProviderVO {
 }
 
 // 添加模型配置请求
-export interface AiModelConfigAddForm {
+export interface AiModelConfigAddDTO {
   configName: string
-  providerCode: string
+  providerConfigId: string // 关联供应商配置ID
   modelName: string
   modelAlias?: string
-  apiKey: string
-  apiEndpoint?: string
   temperature?: number
   maxTokens?: number
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
   isDefault?: number
   isStreamingEnabled?: number
   remark?: string

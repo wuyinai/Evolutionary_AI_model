@@ -66,8 +66,6 @@ public class AiModelConfigController {
     @PostMapping("/add")
     public Result<Long> add(@AuthenticationPrincipal UserDetails userDetails,
                             @Valid @RequestBody AiModelConfigAddDTO dto) {
-        logger.info("添加模型配置请求，供应商编码: {}, 模型名称: {}", dto.getProviderCode(), dto.getModelName());
-
         try {
             Long userId = getUserId(userDetails);
             Long configId = configService.addConfig(userId, dto);

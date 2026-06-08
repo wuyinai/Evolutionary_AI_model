@@ -6,7 +6,7 @@ import type {
   ProviderListResponse,
   AddModelConfigResponse,
   TestConnectionResponse,
-  AiModelConfigAddForm,
+  AiModelConfigAddDTO,
 } from '@/types/modelConfig'
 
 /**
@@ -26,14 +26,14 @@ export const getProviderList = (): Promise<ProviderListResponse> => {
 /**
  * 添加模型配置
  */
-export const addModelConfig = (data: AiModelConfigAddForm): Promise<AddModelConfigResponse> => {
+export const addModelConfig = (data: AiModelConfigAddDTO): Promise<AddModelConfigResponse> => {
   return post('/ai/config/add', data)
 }
 
 /**
  * 更新模型配置
  */
-export const updateModelConfig = (id: string, data: Partial<AiModelConfigAddForm>) => { // 使用string类型
+export const updateModelConfig = (id: string, data: Partial<AiModelConfigAddDTO>) => { // 使用string类型
   return put('/ai/config/update', { id, ...data })
 }
 

@@ -11,29 +11,54 @@
     </div>
 
     <div class="sidebar-content">
-      <div v-for="group in groupedConversations" :key="group.label" class="conversation-group">
-        <div class="group-label text-sm text-secondary">{{ group.label }}</div>
-        <div class="conversation-list">
-          <div
-            v-for="conversation in group.conversations"
-            :key="conversation.id"
-            class="conversation-item"
-            :class="{ active: currentConversation?.id === conversation.id }"
-            @click="selectConversation(conversation.id)"
-          >
-            <div class="conversation-title text-sm">{{ conversation.title }}</div>
-            <button class="delete-btn" @click.stop="deleteConversation(conversation.id)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
+      <!-- Configuration Menu -->
+      <div class="config-menu">
+        <div class="menu-label text-sm text-secondary">配置管理</div>
+        <div class="menu-list">
+          <router-link class="menu-item" to="/provider-config" active-class="active">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+            <span class="text-sm">供应商配置</span>
+          </router-link>
+          <router-link class="menu-item" to="/model-config" active-class="active">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span class="text-sm">模型配置</span>
+          </router-link>
         </div>
       </div>
 
-      <div v-if="groupedConversations.length === 0" class="empty-state text-center text-secondary text-sm">
-        <p>暂无对话记录</p>
+      <!-- Conversations -->
+      <div class="conversations-section">
+        <div class="section-label text-sm text-secondary">对话历史</div>
+        <div v-for="group in groupedConversations" :key="group.label" class="conversation-group">
+          <div class="group-label text-xs text-tertiary">{{ group.label }}</div>
+          <div class="conversation-list">
+            <div
+              v-for="conversation in group.conversations"
+              :key="conversation.id"
+              class="conversation-item"
+              :class="{ active: currentConversation?.id === conversation.id }"
+              @click="selectConversation(conversation.id)"
+            >
+              <div class="conversation-title text-sm">{{ conversation.title }}</div>
+              <button class="delete-btn" @click.stop="deleteConversation(conversation.id)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="groupedConversations.length === 0" class="empty-state text-center text-secondary text-sm">
+          <p>暂无对话记录</p>
+        </div>
       </div>
     </div>
 
@@ -129,14 +154,69 @@ const handleLogout = () => {
   padding: var(--spacing-md);
 }
 
+/* Configuration Menu */
+.config-menu {
+  margin-bottom: var(--spacing-lg);
+}
+
+.menu-label {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.menu-list {
+  margin-top: var(--spacing-xs);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.menu-item:hover {
+  background-color: var(--color-background-soft);
+}
+
+.menu-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.menu-item svg {
+  color: var(--color-text-secondary);
+}
+
+.menu-item.active svg {
+  color: var(--color-primary);
+}
+
+/* Conversations Section */
+.conversations-section {
+  margin-top: var(--spacing-lg);
+}
+
+.section-label {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
 .conversation-group {
   margin-bottom: var(--spacing-lg);
 }
 
 .group-label {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  padding: var(--spacing-xs) var(--spacing-md);
+  color: var(--color-text-tertiary);
 }
 
 .conversation-list {

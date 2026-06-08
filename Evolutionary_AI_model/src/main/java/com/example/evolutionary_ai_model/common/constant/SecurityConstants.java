@@ -10,6 +10,7 @@ public final class SecurityConstants {
     public static final String[] PERMIT_ALL_URLS = {
             LOGIN_URL,
             REGISTER_URL,
+            "/error",  // 错误页面，允许匿名访问以显示异常信息
             "/doc.html",
             "/webjars/**",
             "/v3/api-docs/**",

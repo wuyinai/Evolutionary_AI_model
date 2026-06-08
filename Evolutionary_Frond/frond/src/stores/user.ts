@@ -43,6 +43,7 @@ export const useUserStore = defineStore('user', () => {
         username: registerForm.username,
         email: registerForm.email,
         password: registerForm.password,
+        confirmPassword: registerForm.confirmPassword,
       })
 
       return response

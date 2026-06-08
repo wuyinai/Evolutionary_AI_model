@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -156,7 +157,7 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
 
         // 验证配置是否存在且属于该用户
         AiModelConfig existing = configMapper.selectById(configId);
-        if (existing == null || existing.getUserId() != userId) {
+        if (existing == null || !Objects.equals(existing.getUserId(), userId)) {
             logger.warn("配置不存在或不属于该用户，配置ID: {}, 用户ID: {}", configId, userId);
             throw new IllegalArgumentException("配置不存在或无权限删除");
         }
@@ -177,7 +178,7 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
 
         // 验证配置是否存在且属于该用户
         AiModelConfig existing = configMapper.selectById(configId);
-        if (existing == null || existing.getUserId() != userId) {
+        if (existing == null || !Objects.equals(existing.getUserId(), userId)) {
             logger.warn("配置不存在或不属于该用户，配置ID: {}, 用户ID: {}", configId, userId);
             throw new IllegalArgumentException("配置不存在或无权限设置");
         }

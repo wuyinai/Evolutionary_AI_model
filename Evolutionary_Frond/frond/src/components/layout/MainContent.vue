@@ -56,6 +56,9 @@
       </div>
 
       <div class="input-section">
+        <!-- 模型选择器 -->
+        <ModelSelector :disabled="isLoading" @change="onModelChange" />
+
         <div class="input-container">
           <textarea
             v-model="inputMessage"
@@ -97,10 +100,13 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { useConversationStore } from '@/stores/conversation'
+import { useModelConfigStore } from '@/stores/modelConfig'
 import { streamChat } from '@/utils/chat'
+import ModelSelector from '@/components/ModelSelector.vue'
 import type { ChatMessageDTO } from '@/types/conversation'
 
 const conversationStore = useConversationStore()
+const modelConfigStore = useModelConfigStore()
 
 const currentMode = computed(() => conversationStore.currentMode)
 const messages = computed(() => conversationStore.currentConversation?.messages || [])
@@ -112,8 +118,16 @@ const messagesContainer = ref<HTMLElement | null>(null)
 // 当前正在流式输出的消息ID
 const streamingMessageId = ref<string | null>(null)
 
+// 当前选中的模型配置ID
+const currentConfigId = ref<string | null>(null) // 使用string类型，避免JS精度丢失
+
 const toggleMode = (mode: 'quick' | 'expert') => {
   conversationStore.toggleMode(mode)
+}
+
+// 模型切换处理
+const handleModelChange = (configId: string | null) => { // 使用string类型
+  currentConfigId.value = configId
 }
 
 // 滚动到底部
@@ -156,12 +170,16 @@ const sendMessage = async () => {
   let accumulatedContent = ''
 
   try {
-    // 使用流式对话API
+    // 使用流式对话API，传入configId
+    // 获取当前选中的模型配置ID
+    const configId = currentConfigId.value || modelConfigStore.currentModel?.id || null
+    
     await streamChat(
       {
         conversationId: conversationStore.currentConversation?.id,
         message: userMessage,
         mode: currentMode.value,
+        configId: configId,
         history,
       },
       // onMessage: 每次收到新内容块

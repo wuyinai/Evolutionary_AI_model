@@ -1,4 +1,4 @@
-package com.example.evolutionary_ai_model.dto;
+package com.example.evolutionary_ai_model.entity.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

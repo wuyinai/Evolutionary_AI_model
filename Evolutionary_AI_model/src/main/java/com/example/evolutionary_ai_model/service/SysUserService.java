@@ -1,8 +1,8 @@
 package com.example.evolutionary_ai_model.service;
 
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.UserAddDTO;
-import com.example.evolutionary_ai_model.dto.UserUpdateDTO;
+import com.example.evolutionary_ai_model.entity.dto.UserAddDTO;
+import com.example.evolutionary_ai_model.entity.dto.UserUpdateDTO;
 import com.example.evolutionary_ai_model.entity.SysUser;
 
 /**

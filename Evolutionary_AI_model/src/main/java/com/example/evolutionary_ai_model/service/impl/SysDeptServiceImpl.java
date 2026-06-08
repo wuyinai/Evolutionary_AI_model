@@ -2,8 +2,8 @@ package com.example.evolutionary_ai_model.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.DeptAddDTO;
-import com.example.evolutionary_ai_model.dto.DeptUpdateDTO;
+import com.example.evolutionary_ai_model.entity.dto.DeptAddDTO;
+import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
 import com.example.evolutionary_ai_model.entity.SysDept;
 import com.example.evolutionary_ai_model.mapper.SysDeptMapper;
 import com.example.evolutionary_ai_model.service.SysDeptService;

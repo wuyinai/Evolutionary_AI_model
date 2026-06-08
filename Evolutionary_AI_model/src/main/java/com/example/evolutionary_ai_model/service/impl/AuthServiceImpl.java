@@ -1,8 +1,7 @@
 package com.example.evolutionary_ai_model.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.RegisterBody;
+import com.example.evolutionary_ai_model.entity.dto.RegisterBody;
 import com.example.evolutionary_ai_model.entity.SysUser;
 import com.example.evolutionary_ai_model.entity.SysUserRole;
 import com.example.evolutionary_ai_model.mapper.SysUserRoleMapper;

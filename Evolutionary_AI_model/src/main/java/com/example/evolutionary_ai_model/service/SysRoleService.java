@@ -1,8 +1,8 @@
 package com.example.evolutionary_ai_model.service;
 
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.RoleAddDTO;
-import com.example.evolutionary_ai_model.dto.RoleUpdateDTO;
+import com.example.evolutionary_ai_model.entity.dto.RoleAddDTO;
+import com.example.evolutionary_ai_model.entity.dto.RoleUpdateDTO;
 import com.example.evolutionary_ai_model.entity.SysRole;
 
 /**

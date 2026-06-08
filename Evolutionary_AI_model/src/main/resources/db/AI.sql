@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS `ai_model_config`;
 CREATE TABLE `ai_model_config` (
                                    `id` BIGINT NOT NULL COMMENT '主键ID',
                                    `config_name` VARCHAR(100) NOT NULL COMMENT '配置名称（用户自定义）',
+                                   `user_id` BIGINT NOT NULL COMMENT '用户ID（配置所属用户）',
                                    `provider_id` BIGINT NOT NULL COMMENT '供应商ID，关联ai_model_provider.id',
                                    `provider_code` VARCHAR(50) NOT NULL COMMENT '供应商编码（冗余字段，便于查询）',
                                    `model_name` VARCHAR(100) NOT NULL COMMENT '模型名称（如：gpt-4o、qwen-turbo等）',
@@ -59,6 +60,7 @@ CREATE TABLE `ai_model_config` (
                                    `del_flag` TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0-未删除 1-已删除',
                                    `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
                                    PRIMARY KEY (`id`),
+                                   KEY `idx_user_id` (`user_id`),
                                    KEY `idx_provider_id` (`provider_id`),
                                    KEY `idx_provider_code` (`provider_code`),
                                    KEY `idx_model_name` (`model_name`),

@@ -1,8 +1,8 @@
 package com.example.evolutionary_ai_model.service.strategy;
 
-import com.example.evolutionary_ai_model.dto.ChatMessageDTO;
-import com.example.evolutionary_ai_model.dto.ChatRequestDTO;
-import com.example.evolutionary_ai_model.dto.ChatResponseDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatMessageDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatResponseDTO;
 import reactor.core.publisher.Flux;
 
 import java.util.List;

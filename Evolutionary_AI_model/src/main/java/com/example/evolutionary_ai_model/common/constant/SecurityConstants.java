@@ -17,6 +17,7 @@ public final class SecurityConstants {
             "/favicon.ico",
             "/hello",
             "/chat/**",  // 对话接口允许匿名访问（测试用）
+            "/ai/provider/list",  // 供应商列表允许公开访问
     };
     //JWT令牌中存储的声明字段名
     public static final String TOKEN_CLAIM_USERID = "userId";

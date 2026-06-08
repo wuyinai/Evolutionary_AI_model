@@ -35,6 +35,8 @@ export interface SendMessageRequest {
   conversationId?: string
   message: string
   mode: ConversationMode
+  configId?: number // 模型配置ID
+  userId?: number // 用户ID（可选，后端从认证信息获取）
   history?: ChatMessageDTO[]
 }
 

@@ -1,4 +1,4 @@
-package com.example.evolutionary_ai_model.dto;
+package com.example.evolutionary_ai_model.entity.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

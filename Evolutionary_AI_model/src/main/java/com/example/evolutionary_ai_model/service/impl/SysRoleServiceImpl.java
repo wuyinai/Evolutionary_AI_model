@@ -2,8 +2,8 @@ package com.example.evolutionary_ai_model.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.RoleAddDTO;
-import com.example.evolutionary_ai_model.dto.RoleUpdateDTO;
+import com.example.evolutionary_ai_model.entity.dto.RoleAddDTO;
+import com.example.evolutionary_ai_model.entity.dto.RoleUpdateDTO;
 import com.example.evolutionary_ai_model.entity.SysRole;
 import com.example.evolutionary_ai_model.mapper.SysRoleMapper;
 import com.example.evolutionary_ai_model.service.SysRoleService;

@@ -1,0 +1,48 @@
+package com.example.evolutionary_ai_model.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+/**
+ * 用法：AI会话消息实体类，存储对话中的每条消息记录。
+ * 位于数据访问层，映射数据库表 ai_conversation_message。
+ * 包含消息角色、内容、Token数、父消息ID等信息，支持消息树结构。
+ */
+@Data
+@TableName("ai_conversation_message")
+public class AiConversationMessage implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    // 主键ID
+    @TableId
+    private Long id;
+
+    // 消息ID
+    private String messageId;
+
+    // 会话ID
+    private String conversationId;
+
+    // 角色：USER-用户、ASSISTANT-助手、SYSTEM-系统
+    private String role;
+
+    // 消息内容
+    private String content;
+
+    // Token数
+    private Integer tokens;
+
+    // 父消息ID（用于消息树结构）
+    private String parentMessageId;
+
+    // 关联的日志ID
+    private Long logId;
+
+    // 创建时间
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+}

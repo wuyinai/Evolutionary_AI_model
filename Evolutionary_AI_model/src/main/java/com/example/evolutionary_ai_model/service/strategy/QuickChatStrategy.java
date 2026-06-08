@@ -1,9 +1,9 @@
 package com.example.evolutionary_ai_model.service.strategy;
 
 import cn.hutool.core.util.IdUtil;
-import com.example.evolutionary_ai_model.dto.ChatMessageDTO;
-import com.example.evolutionary_ai_model.dto.ChatRequestDTO;
-import com.example.evolutionary_ai_model.dto.ChatResponseDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatMessageDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatResponseDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;

@@ -1,7 +1,7 @@
 package com.example.evolutionary_ai_model.controller;
 
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.RegisterBody;
+import com.example.evolutionary_ai_model.entity.dto.RegisterBody;
 import com.example.evolutionary_ai_model.security.JwtTokenProvider;
 import com.example.evolutionary_ai_model.security.LoginUserDetails;
 import com.example.evolutionary_ai_model.service.AuthService;

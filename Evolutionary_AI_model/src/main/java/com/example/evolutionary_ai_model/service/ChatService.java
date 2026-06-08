@@ -1,7 +1,7 @@
 package com.example.evolutionary_ai_model.service;
 
-import com.example.evolutionary_ai_model.dto.ChatRequestDTO;
-import com.example.evolutionary_ai_model.dto.ChatResponseDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
+import com.example.evolutionary_ai_model.entity.dto.ChatResponseDTO;
 
 /**
  * 用法：AI对话服务接口，定义对话相关的业务操作。

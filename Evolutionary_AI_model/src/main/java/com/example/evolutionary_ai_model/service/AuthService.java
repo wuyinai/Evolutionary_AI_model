@@ -1,7 +1,7 @@
 package com.example.evolutionary_ai_model.service;
 
 import com.example.evolutionary_ai_model.common.result.Result;
-import com.example.evolutionary_ai_model.dto.RegisterBody;
+import com.example.evolutionary_ai_model.entity.dto.RegisterBody;
 
 /**
  * 用法：认证服务接口，定义登录、注册等认证相关的业务方法

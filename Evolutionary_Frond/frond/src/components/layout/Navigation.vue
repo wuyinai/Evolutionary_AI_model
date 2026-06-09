@@ -136,12 +136,15 @@ const menuItems = [
     ])
   },
   {
-    path: '/reserved-1',
-    label: '预留1',
+    path: '/agent',
+    label: 'Agent助手',
     icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
-      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
-      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
+      h('rect', { x: 3, y: 11, width: 18, height: 10, rx: 2 }),
+      h('circle', { cx: 12, cy: 5, r: 2 }),
+      h('path', { d: 'M12 7v4' }),
+      h('line', { x1: 8, y1: 16, x2: 8, y2: 16 }),
+      h('line', { x1: 16, y1: 16, x2: 16, y2: 16 }),
+      h('line', { x1: 9, y1: 20, x2: 15, y2: 20 })
     ])
   },
   {

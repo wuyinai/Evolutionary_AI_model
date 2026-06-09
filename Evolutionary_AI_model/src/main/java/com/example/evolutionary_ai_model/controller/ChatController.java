@@ -2,16 +2,21 @@ package com.example.evolutionary_ai_model.controller;
 
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.AiConversation;
+import com.example.evolutionary_ai_model.entity.dto.AgentRequestDTO;
 import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
+import com.example.evolutionary_ai_model.entity.vo.AgentResultVO;
 import com.example.evolutionary_ai_model.entity.vo.ConversationMessageVO;
 import com.example.evolutionary_ai_model.security.LoginUserDetails;
 import com.example.evolutionary_ai_model.service.AiChatLogService;
 import com.example.evolutionary_ai_model.service.AiConversationService;
 import com.example.evolutionary_ai_model.service.ChatService;
+import com.example.evolutionary_ai_model.service.agent.AgentService;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -38,27 +43,17 @@ public class ChatController {
     private final ChatService chatService;
     private final AiChatLogService chatLogService;
     private final AiConversationService conversationService;
+    private final AgentService agentService;
+
+
 
     public ChatController(ChatClient.Builder chatClientBuilder, ChatService chatService, 
-            AiChatLogService chatLogService, AiConversationService conversationService) {
+            AiChatLogService chatLogService, AiConversationService conversationService, AgentService agentService) {
         this.chatClient = chatClientBuilder.build();
         this.chatService = chatService;
         this.chatLogService = chatLogService;
         this.conversationService = conversationService;
-    }
-
-    /**
-     * 测试接口 - 简单对话（使用配置文件中的默认模型）
-     * 请求地址: GET /chat/test
-     * 测试数据: message参数，如 "你好"
-     */
-    @GetMapping("/test")
-    public String test(@RequestParam String message) {
-        logger.info("测试对话请求，消息: {}", message);
-        return chatClient.prompt()
-                .user(message)
-                .call()
-                .content();
+        this.agentService = agentService;
     }
 
     /**
@@ -196,6 +191,92 @@ public class ChatController {
         } catch (Exception e) {
             logger.error("删除会话失败，会话ID: {}", conversationId, e);
             return Result.fail("删除会话失败: " + e.getMessage());
+        }
+    }
+
+    // ==================== Agent相关接口 ====================
+
+    /**
+     * 流式执行Agent任务 - 支持实时返回执行过程和结果
+     * 请求地址: POST /chat/agent/task
+     * 测试数据示例:
+     * {
+     *   "task": "查询北京今天的天气，并计算25+17的结果",
+     *   "configId": 123456789,  // 可选，指定使用的模型配置ID
+     *   "availableTools": ["weather", "calculator"],  // 可选，指定可用工具
+     *   "maxSteps": 10  // 可选，最大执行步数
+     * }
+     */
+    @PostMapping(value = "/agent/task", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> executeAgentTask(@AuthenticationPrincipal UserDetails userDetails,
+                                         @Valid @RequestBody AgentRequestDTO request) {
+        logger.info("流式执行Agent任务，任务描述: {}", request.getTask());
+
+        try {
+            // 从认证信息获取用户ID
+            Long userId = getUserId(userDetails);
+            request.setUserId(userId);
+
+            // 使用AgentService流式执行任务
+            return agentService.executeTask(request);
+
+        } catch (Exception e) {
+            logger.error("Agent任务流式执行异常", e);
+            return Flux.just("错误: Agent任务执行失败 - " + e.getMessage());
+        }
+    }
+
+    /**
+     * 同步执行Agent任务 - 返回完整的执行结果
+     * 请求地址: POST /chat/agent/task/sync
+     * 测试数据示例:
+     * {
+     *   "task": "查询当前时间，并搜索Spring AI的相关信息",
+     *   "configId": 123456789,  // 可选，指定使用的模型配置ID
+     *   "availableTools": ["time", "search"],  // 可选，指定可用工具
+     *   "maxSteps": 10  // 可选，最大执行步数
+     * }
+     * 返回数据: AgentResultVO，包含最终答案和工具执行日志
+     */
+    @PostMapping("/agent/task/sync")
+    public Result<AgentResultVO> executeAgentTaskSync(@AuthenticationPrincipal UserDetails userDetails,
+                                                      @Valid @RequestBody AgentRequestDTO request) {
+        logger.info("同步执行Agent任务，任务描述: {}", request.getTask());
+
+        try {
+            // 从认证信息获取用户ID
+            Long userId = getUserId(userDetails);
+            request.setUserId(userId);
+
+            // 使用AgentService同步执行任务
+            AgentResultVO result = agentService.executeTaskSync(request);
+
+            logger.info("Agent任务同步执行完成，状态: {}", result.getStatus());
+            return Result.success(result);
+
+        } catch (Exception e) {
+            logger.error("Agent任务同步执行异常", e);
+            return Result.fail("Agent任务执行失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取可用的Agent工具列表
+     * 请求地址: GET /chat/agent/tools
+     * 返回数据: 工具名称列表
+     */
+    @GetMapping("/agent/tools")
+    public Result<List<String>> getAvailableTools() {
+        logger.info("获取可用的Agent工具列表");
+
+        try {
+            List<String> tools = agentService.getAvailableTools();
+            logger.info("获取工具列表成功，工具数量: {}", tools.size());
+            return Result.success(tools);
+
+        } catch (Exception e) {
+            logger.error("获取工具列表失败", e);
+            return Result.fail("获取工具列表失败: " + e.getMessage());
         }
     }
 }

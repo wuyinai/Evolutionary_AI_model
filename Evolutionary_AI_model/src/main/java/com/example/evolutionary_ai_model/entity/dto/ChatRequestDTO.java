@@ -18,10 +18,6 @@ public class ChatRequestDTO {
     @NotBlank(message = "消息内容不能为空")
     private String message;
 
-    // 对话模式：quick-快速模式，expert-专家模式
-    @NotBlank(message = "对话模式不能为空")
-    private String mode;
-
     // 历史消息列表，用于多轮对话上下文
     private List<ChatMessageDTO> history;
 

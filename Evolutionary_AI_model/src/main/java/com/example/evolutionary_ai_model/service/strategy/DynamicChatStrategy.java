@@ -21,17 +21,14 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 /**
- * 用法：动态模型对话策略实现类，根据两级配置和会话钉选动态创建ChatClient进行对话。
+ * 用法：动态模型对话服务类，根据两级配置和会话钉选动态创建ChatClient进行对话。
  * 支持会话级模型钉选，优先使用会话钉选的模型配置，确保"用户选什么用什么"。
  * 使用ProviderChatModelFactory根据协议类型动态构建ChatModel实例。
  */
 @Component
-public class DynamicChatStrategy implements ChatStrategy {
+public class DynamicChatStrategy {
 
     private static final Logger logger = LoggerFactory.getLogger(DynamicChatStrategy.class);
-
-    // 策略标识
-    private static final String MODE = "dynamic";
 
     // 模型配置服务
     @Autowired
@@ -49,12 +46,6 @@ public class DynamicChatStrategy implements ChatStrategy {
     @Autowired
     private ProviderChatModelFactory chatModelFactory;
 
-    @Override
-    public String getMode() {
-        return MODE;
-    }
-
-    @Override
     public ChatResponseDTO chat(ChatRequestDTO request) {
         logger.info("动态模式对话请求，消息内容长度: {}", request.getMessage().length());
 
@@ -91,7 +82,6 @@ public class DynamicChatStrategy implements ChatStrategy {
                     .conversationId(request.getConversationId() != null ? request.getConversationId() : IdUtil.fastSimpleUUID())
                     .messageId(IdUtil.fastSimpleUUID())
                     .content(response)
-                    .mode(MODE)
                     .timestamp(System.currentTimeMillis())
                     .build();
 
@@ -101,7 +91,6 @@ public class DynamicChatStrategy implements ChatStrategy {
         }
     }
 
-    @Override
     public Flux<String> streamChat(ChatRequestDTO request) {
         logger.info("动态模式流式对话请求，消息内容长度: {}", request.getMessage().length());
 
@@ -136,7 +125,6 @@ public class DynamicChatStrategy implements ChatStrategy {
         }
     }
 
-    @Override
     public String buildPrompt(String message, List<ChatMessageDTO> history) {
         StringBuilder promptBuilder = new StringBuilder();
 

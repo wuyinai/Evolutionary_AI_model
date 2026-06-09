@@ -23,9 +23,6 @@ public class ChatResponseDTO {
     // AI回复内容
     private String content;
 
-    // 对话模式
-    private String mode;
-
     // 时间戳
     private Long timestamp;
 }

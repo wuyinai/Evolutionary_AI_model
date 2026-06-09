@@ -1,27 +1,38 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isAuthenticated } from '@/utils/auth'
-import HomeView from '../views/HomeView.vue'
+import MainLayout from '@/components/layout/MainLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      component: MainLayout,
       meta: { requiresAuth: true },
-    },
-    {
-      path: '/provider-config',
-      name: 'providerConfig',
-      component: () => import('../views/ProviderConfigManagement.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/model-config',
-      name: 'modelConfig',
-      component: () => import('../views/ModelConfigManagement.vue'),
-      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          redirect: '/chat',
+        },
+        {
+          path: 'chat',
+          name: 'chat',
+          component: () => import('../views/ChatView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'provider-config',
+          name: 'providerConfig',
+          component: () => import('../views/ProviderConfigManagement.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'model-config',
+          name: 'modelConfig',
+          component: () => import('../views/ModelConfigManagement.vue'),
+          meta: { requiresAuth: true },
+        },
+      ],
     },
     {
       path: '/login',

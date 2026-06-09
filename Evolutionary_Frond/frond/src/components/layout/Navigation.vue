@@ -93,6 +93,33 @@ const menuItems = [
     ])
   },
   {
+    path: '/rag-kb',
+    label: 'RAG知识库',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('path', { d: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20' }),
+      h('path', { d: 'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' }),
+      h('line', { x1: 12, y1: 6, x2: 12, y2: 12 }),
+      h('line', { x1: 12, y1: 12, x2: 16, y2: 12 })
+    ])
+  },
+  {
+    path: '/skills',
+    label: 'Skills仓库',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('path', { d: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z' })
+    ])
+  },
+  {
+    path: '/role-expert',
+    label: '角色专家',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
+      h('circle', { cx: 9, cy: 7, r: 4 }),
+      h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }),
+      h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })
+    ])
+  },
+  {
     path: '/provider-config',
     label: '供应商配置',
     icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
@@ -106,6 +133,42 @@ const menuItems = [
     label: '模型配置',
     icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
       h('polygon', { points: '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2' })
+    ])
+  },
+  {
+    path: '/reserved-1',
+    label: '预留1',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
+      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
+      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
+    ])
+  },
+  {
+    path: '/reserved-2',
+    label: '预留2',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
+      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
+      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
+    ])
+  },
+  {
+    path: '/reserved-3',
+    label: '预留3',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
+      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
+      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
+    ])
+  },
+  {
+    path: '/reserved-4',
+    label: '预留4',
+    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
+      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
+      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
     ])
   }
 ]

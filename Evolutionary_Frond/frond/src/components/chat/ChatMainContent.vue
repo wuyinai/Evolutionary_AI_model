@@ -1,6 +1,7 @@
 <template>
   <div class="chat-main-content">
-    <div class="content-wrapper">
+    <!-- 消息区域（可滚动） -->
+    <div class="messages-area">
       <div class="content-header">
         <div class="title-section">
           <svg class="title-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -37,8 +38,11 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="input-section">
+    <!-- 输入框区域（固定在底部） -->
+    <div class="input-section-fixed">
+      <div class="input-wrapper">
         <!-- 模型选择器 -->
         <ModelSelector :disabled="isLoading" @change="onModelChange" />
 
@@ -266,16 +270,17 @@ const sendMessage = async () => {
   display: flex;
   flex-direction: column;
   background-color: #ffffff;
+  position: relative;
 }
 
-.content-wrapper {
+/* 消息区域（可滚动） */
+.messages-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 900px;
-  margin: 0 auto;
-  width: 100%;
+  overflow-y: auto;
   padding: var(--spacing-2xl);
+  padding-bottom: 0; /* 为固定输入框留出空间 */
 }
 
 .content-header {
@@ -302,8 +307,11 @@ const sendMessage = async () => {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: var(--spacing-lg);
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
   position: relative;
+  padding-bottom: var(--spacing-lg);
 }
 
 /* Loading overlay */
@@ -384,7 +392,21 @@ const sendMessage = async () => {
   }
 }
 
-.input-section {
+/* 输入框区域（固定在底部） */
+.input-section-fixed {
+  position: sticky;
+  bottom: 0;
+  left: 280px;
+  right: 0;
+  background-color: #ffffff;
+  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  z-index: 10;
+}
+
+.input-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -460,6 +482,7 @@ const sendMessage = async () => {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
   transition: all 0.2s ease-out;
+  cursor: pointer;
 }
 
 .action-btn:hover {
@@ -472,6 +495,7 @@ const sendMessage = async () => {
   min-width: 48px;
   height: 48px;
   transition: all 0.2s ease-out;
+  cursor: pointer;
 }
 
 .send-btn:disabled {
@@ -485,7 +509,12 @@ const sendMessage = async () => {
     margin-left: 240px;
   }
   
-  .content-wrapper {
+  .messages-area {
+    padding: var(--spacing-md);
+  }
+  
+  .input-section-fixed {
+    left: 240px;
     padding: var(--spacing-md);
   }
   
@@ -504,7 +533,12 @@ const sendMessage = async () => {
     width: 100%;
   }
   
-  .content-wrapper {
+  .messages-area {
+    padding: var(--spacing-sm);
+  }
+  
+  .input-section-fixed {
+    left: 0;
     padding: var(--spacing-sm);
   }
   

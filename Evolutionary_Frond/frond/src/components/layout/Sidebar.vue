@@ -35,29 +35,43 @@
       <!-- Conversations -->
       <div class="conversations-section">
         <div class="section-label text-sm text-secondary">对话历史</div>
-        <div v-for="group in groupedConversations" :key="group.label" class="conversation-group">
-          <div class="group-label text-xs text-tertiary">{{ group.label }}</div>
-          <div class="conversation-list">
-            <div
-              v-for="conversation in group.conversations"
-              :key="conversation.id"
-              class="conversation-item"
-              :class="{ active: currentConversation?.id === conversation.id }"
-              @click="selectConversation(conversation.id)"
-            >
-              <div class="conversation-title text-sm">{{ conversation.title }}</div>
-              <button class="delete-btn" @click.stop="deleteConversation(conversation.id)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
+        
+        <!-- Loading indicator for conversations list -->
+        <div v-if="isLoadingConversations" class="loading-indicator">
+          <div class="loading-spinner-small"></div>
+          <span class="text-sm text-secondary">加载中...</span>
         </div>
 
-        <div v-if="groupedConversations.length === 0" class="empty-state text-center text-secondary text-sm">
-          <p>暂无对话记录</p>
+        <div v-else>
+          <div v-for="group in groupedConversations" :key="group.label" class="conversation-group">
+            <div class="group-label text-xs text-tertiary">{{ group.label }}</div>
+            <div class="conversation-list">
+              <div
+                v-for="conversation in group.conversations"
+                :key="conversation.id"
+                class="conversation-item"
+                :class="{ 
+                  active: currentConversation?.id === conversation.id,
+                  loading: isLoadingMessages && currentConversation?.id === conversation.id
+                }"
+                @click="handleSelectConversation(conversation.id)"
+              >
+                <div class="conversation-title text-sm">{{ conversation.title }}</div>
+                <!-- Loading indicator for messages -->
+                <div v-if="isLoadingMessages && currentConversation?.id === conversation.id" class="message-loading-spinner"></div>
+                <button class="delete-btn" @click.stop="deleteConversation(conversation.id)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="groupedConversations.length === 0" class="empty-state text-center text-secondary text-sm">
+            <p>暂无对话记录</p>
+          </div>
         </div>
       </div>
     </div>
@@ -86,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConversationStore } from '@/stores/conversation'
 import { useUserStore } from '@/stores/user'
@@ -97,17 +111,33 @@ const userStore = useUserStore()
 
 const groupedConversations = computed(() => conversationStore.groupedConversations)
 const currentConversation = computed(() => conversationStore.currentConversation)
+const isLoadingConversations = computed(() => conversationStore.isLoadingConversations)
+const isLoadingMessages = computed(() => conversationStore.isLoadingMessages)
 
 const userEmail = computed(() => {
   return userStore.userInfo?.email || '195******65@163.com'
 })
 
+// Load conversations when component mounts
+onMounted(async () => {
+  await conversationStore.loadConversations()
+})
+
 const createNewConversation = () => {
   conversationStore.createConversation()
+  // Navigate to home page if not already there
+  if (router.currentRoute.value.path !== '/') {
+    router.push('/')
+  }
 }
 
-const selectConversation = (id: string) => {
-  conversationStore.selectConversation(id)
+const handleSelectConversation = async (id: string) => {
+  // Navigate to home page first
+  if (router.currentRoute.value.path !== '/') {
+    router.push('/')
+  }
+  // Then select the conversation (which will load messages)
+  await conversationStore.selectConversation(id)
 }
 
 const deleteConversation = (id: string) => {
@@ -210,6 +240,40 @@ const handleLogout = () => {
   color: var(--color-text-secondary);
 }
 
+/* Loading indicator */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.message-loading-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: var(--spacing-xs);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .conversation-group {
   margin-bottom: var(--spacing-lg);
 }
@@ -232,6 +296,7 @@ const handleLogout = () => {
   cursor: pointer;
   transition: background-color var(--transition-fast);
   margin-bottom: var(--spacing-xs);
+  position: relative;
 }
 
 .conversation-item:hover {
@@ -240,6 +305,11 @@ const handleLogout = () => {
 
 .conversation-item.active {
   background-color: var(--color-primary-light);
+  border-left: 3px solid var(--color-primary);
+}
+
+.conversation-item.loading {
+  opacity: 0.8;
 }
 
 .conversation-title {
@@ -248,6 +318,11 @@ const handleLogout = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text);
+}
+
+.conversation-item.active .conversation-title {
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
 .delete-btn {
@@ -311,5 +386,40 @@ const handleLogout = () => {
 .logout-btn:hover {
   background-color: var(--color-background-soft);
   color: var(--color-text);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+  }
+  
+  .sidebar-header {
+    padding: var(--spacing-sm);
+  }
+  
+  .new-chat-btn span {
+    display: none;
+  }
+  
+  .menu-item span,
+  .section-label,
+  .group-label,
+  .conversation-title,
+  .user-email {
+    display: none;
+  }
+  
+  .sidebar-content {
+    padding: var(--spacing-sm);
+  }
+  
+  .sidebar-footer {
+    padding: var(--spacing-sm);
+  }
+  
+  .user-details {
+    display: none;
+  }
 }
 </style>

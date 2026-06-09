@@ -18,6 +18,17 @@ public interface AiConversationService {
     AiConversation createConversation(Long userId, String title, Long configId);
 
     /**
+     * 创建或更新会话（用于聊天消息保存时）
+     * 如果会话ID不存在，则创建新会话；如果会话ID存在，则更新会话的统计信息
+     * @param conversationId 会话ID（可为null，如果为null则创建新会话）
+     * @param userId 用户ID
+     * @param title 会话标题（第一条用户消息）
+     * @param configId 模型配置ID
+     * @return 会话实体
+     */
+    AiConversation createOrUpdateConversation(String conversationId, Long userId, String title, Long configId);
+
+    /**
      * 获取会话详情
      * @param conversationId 会话ID
      * @return 会话实体

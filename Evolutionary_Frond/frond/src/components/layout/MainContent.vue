@@ -7,39 +7,22 @@
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
           <h1 class="main-title text-3xl font-bold">
-            {{ currentMode === 'quick' ? '使用快速模式开始对话' : '使用专家模式开始对话' }}
+            开始对话
           </h1>
-        </div>
-
-        <div class="mode-toggle">
-          <button
-            class="mode-btn btn-capsule"
-            :class="{ active: currentMode === 'quick' }"
-            @click="toggleMode('quick')"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-            </svg>
-            <span>快速模式</span>
-          </button>
-          <button
-            class="mode-btn btn-capsule"
-            :class="{ active: currentMode === 'expert' }"
-            @click="toggleMode('expert')"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            <span>专家模式</span>
-          </button>
         </div>
       </div>
 
       <div class="messages-container" ref="messagesContainer">
-        <div v-if="messages.length === 0" class="empty-state">
+        <!-- Loading indicator for messages -->
+        <div v-if="isLoadingMessages" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <span class="text-secondary text-sm">加载消息历史...</span>
+        </div>
+
+        <div v-if="messages.length === 0 && !isLoadingMessages" class="empty-state">
           <p class="text-secondary text-lg">开始您的对话吧！</p>
         </div>
-        <div v-else class="messages-list">
+        <div v-else-if="messages.length > 0" class="messages-list">
           <div
             v-for="message in messages"
             :key="message.id"
@@ -112,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useConversationStore } from '@/stores/conversation'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { streamChat } from '@/utils/chat'
@@ -122,8 +105,8 @@ import type { ChatMessageDTO } from '@/types/conversation'
 const conversationStore = useConversationStore()
 const modelConfigStore = useModelConfigStore()
 
-const currentMode = computed(() => conversationStore.currentMode)
 const messages = computed(() => conversationStore.currentConversation?.messages || [])
+const isLoadingMessages = computed(() => conversationStore.isLoadingMessages)
 
 const inputMessage = ref('')
 const isLoading = ref(false)
@@ -144,9 +127,20 @@ const pinnedModelInfo = computed(() => {
   return null
 })
 
-const toggleMode = (mode: 'quick' | 'expert') => {
-  conversationStore.toggleMode(mode)
-}
+// Watch for messages loading completion and scroll to bottom
+watch(isLoadingMessages, async (loading) => {
+  if (!loading && messages.value.length > 0) {
+    // When messages loading is complete, scroll to bottom
+    await scrollToBottom()
+  }
+})
+
+// Watch for current conversation changes and scroll to bottom
+watch(() => conversationStore.currentConversation?.id, async (newId, oldId) => {
+  if (newId && newId !== oldId && messages.value.length > 0) {
+    await scrollToBottom()
+  }
+})
 
 // 模型切换处理
 const onModelChange = (configId: string | null) => {
@@ -214,8 +208,7 @@ const sendMessage = async () => {
       {
         conversationId: conversationStore.currentConversation?.id,
         message: userMessage,
-        mode: currentMode.value,
-        configId: configId,
+        configId: configId || undefined,
         history,
       },
       // onMessage: 每次收到新内容块
@@ -323,37 +316,37 @@ const sendMessage = async () => {
   color: var(--color-text);
 }
 
-.mode-toggle {
-  display: flex;
-  gap: var(--spacing-sm);
-  justify-content: center;
-}
-
-.mode-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-background);
-  color: var(--color-text-secondary);
-  transition: all var(--transition-fast);
-}
-
-.mode-btn.active {
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.mode-btn:hover:not(.active) {
-  background-color: var(--color-background-soft);
-}
-
 .messages-container {
   flex: 1;
   overflow-y: auto;
   margin-bottom: var(--spacing-lg);
+  position: relative;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  min-height: 200px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
@@ -502,18 +495,22 @@ const sendMessage = async () => {
   cursor: not-allowed;
 }
 
-.loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-background);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+  }
+  
+  .content-wrapper {
+    padding: var(--spacing-md);
+  }
+  
+  .message-item {
+    max-width: 90%;
+  }
+  
+  .input-actions span {
+    display: none;
   }
 }
 </style>

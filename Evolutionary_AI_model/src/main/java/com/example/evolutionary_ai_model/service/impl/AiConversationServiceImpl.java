@@ -50,6 +50,57 @@ public class AiConversationServiceImpl implements AiConversationService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AiConversation createOrUpdateConversation(String conversationId, Long userId, String title, Long configId) {
+        logger.info("创建或更新会话，会话ID: {}, 用户ID: {}, 标题: {}, 配置ID: {}", 
+                conversationId, userId, title, configId);
+
+        // 如果会话ID为null或不存在，则创建新会话
+        if (conversationId == null || conversationId.isEmpty()) {
+            logger.info("会话ID为空，创建新会话");
+            return createConversation(userId, title, configId);
+        }
+
+        // 检查会话是否存在
+        AiConversation existingConversation = getConversation(conversationId);
+        if (existingConversation == null) {
+            logger.info("会话不存在，创建新会话，会话ID: {}", conversationId);
+            
+            // 创建新会话，使用传入的conversationId
+            AiConversation newConversation = new AiConversation();
+            newConversation.setId(IdUtil.getSnowflakeNextId());
+            newConversation.setConversationId(conversationId);
+            newConversation.setUserId(userId);
+            newConversation.setConfigId(configId);
+            newConversation.setTitle(title);
+            newConversation.setMessageCount(0);
+            newConversation.setTotalTokens(0L);
+            newConversation.setTotalCost(BigDecimal.ZERO);
+            newConversation.setStatus(1); // 活跃状态
+
+            conversationMapper.insert(newConversation);
+            logger.info("新会话创建成功，会话ID: {}", newConversation.getConversationId());
+
+            return newConversation;
+        }
+
+        // 会话已存在，更新标题（如果是第一条消息）
+        if (existingConversation.getTitle() == null || existingConversation.getTitle().isEmpty() || 
+                existingConversation.getTitle().equals("新对话")) {
+            logger.info("更新会话标题，会话ID: {}, 新标题: {}", conversationId, title);
+            
+            LambdaUpdateWrapper<AiConversation> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(AiConversation::getConversationId, conversationId)
+                    .set(AiConversation::getTitle, title);
+            
+            conversationMapper.update(null, updateWrapper);
+        }
+
+        logger.info("会话已存在，返回现有会话，会话ID: {}", conversationId);
+        return existingConversation;
+    }
+
+    @Override
     public AiConversation getConversation(String conversationId) {
         logger.info("获取会话详情，会话ID: {}", conversationId);
 

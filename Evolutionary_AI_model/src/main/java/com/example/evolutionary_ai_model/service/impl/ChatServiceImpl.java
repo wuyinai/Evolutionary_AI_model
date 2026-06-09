@@ -1,7 +1,6 @@
 package com.example.evolutionary_ai_model.service.impl;
 
 import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
-import com.example.evolutionary_ai_model.entity.dto.ChatResponseDTO;
 import com.example.evolutionary_ai_model.service.ChatService;
 import com.example.evolutionary_ai_model.service.strategy.DynamicChatStrategy;
 import org.slf4j.Logger;
@@ -22,19 +21,6 @@ public class ChatServiceImpl implements ChatService {
 
     public ChatServiceImpl(DynamicChatStrategy dynamicChatStrategy) {
         this.dynamicChatStrategy = dynamicChatStrategy;
-    }
-
-    @Override
-    public ChatResponseDTO chat(ChatRequestDTO request) {
-        logger.info("处理对话请求，消息长度: {}, configId: {}", 
-                request.getMessage().length(), request.getConfigId());
-
-        // 使用动态模型策略进行对话
-        ChatResponseDTO response = dynamicChatStrategy.chat(request);
-
-        logger.info("对话完成，生成消息ID: {}", response.getMessageId());
-
-        return response;
     }
 
     @Override

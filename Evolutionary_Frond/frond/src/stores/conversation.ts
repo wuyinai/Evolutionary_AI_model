@@ -2,29 +2,93 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Conversation, Message, ConversationMode, ConversationGroup } from '@/types/conversation'
+import type { Conversation, Message, ConversationGroup, ApiConversation, ApiConversationMessage } from '@/types/conversation'
+import { getUserConversations, getConversationMessages } from '@/utils/conversationApi'
 
 export const useConversationStore = defineStore('conversation', () => {
   // 状态
-  const currentMode = ref<ConversationMode>('quick')
   const conversations = ref<Conversation[]>([])
   const currentConversation = ref<Conversation | null>(null)
+  const isLoadingConversations = ref(false) // 加载会话列表状态
+  const isLoadingMessages = ref(false) // 加载消息历史状态
 
   /**
-   * 切换对话模式
+   * 从后端加载用户会话列表
    */
-  const toggleMode = (mode: ConversationMode) => {
-    currentMode.value = mode
+  const loadConversations = async () => {
+    isLoadingConversations.value = true
+    try {
+      const apiConversations = await getUserConversations()
+      // 转换后端数据格式为前端格式
+      conversations.value = apiConversations.map(convertApiConversationToLocal)
+    } catch (error) {
+      console.error('加载会话列表失败:', error)
+      conversations.value = []
+    } finally {
+      isLoadingConversations.value = false
+    }
   }
 
   /**
-   * 创建新对话
+   * 将后端会话数据转换为前端格式
+   */
+  const convertApiConversationToLocal = (apiConv: ApiConversation): Conversation => {
+    return {
+      id: apiConv.conversationId, // 使用 conversationId 作为前端会话ID
+      title: apiConv.title || '新对话',
+      messages: [], // 消息列表初始为空，点击时再加载
+      pinnedConfigId: apiConv.pinnedConfigId,
+      createdAt: new Date(apiConv.createTime),
+      updatedAt: new Date(apiConv.updateTime || apiConv.lastMessageTime || apiConv.createTime),
+    }
+  }
+
+  /**
+   * 将后端消息数据转换为前端格式
+   */
+  const convertApiMessageToLocal = (apiMsg: ApiConversationMessage): Message => {
+    return {
+      id: apiMsg.messageId,
+      role: apiMsg.role.toLowerCase() === 'user' ? 'user' : 'assistant',
+      content: apiMsg.content,
+      timestamp: new Date(apiMsg.createTime),
+      isStreaming: false,
+    }
+  }
+
+  /**
+   * 选择对话并加载其消息历史
+   */
+  const selectConversation = async (id: string) => {
+    // 先设置当前会话（不等待消息加载）
+    const conversation = conversations.value.find((c) => c.id === id)
+    if (conversation) {
+      currentConversation.value = conversation
+    }
+
+    // 如果该会话的消息列表为空，则从后端加载
+    if (conversation && conversation.messages.length === 0) {
+      isLoadingMessages.value = true
+      try {
+        const apiMessages = await getConversationMessages(id)
+        // 转换并设置消息列表
+        conversation.messages = apiMessages.map(convertApiMessageToLocal)
+      } catch (error) {
+        console.error('加载会话消息失败:', error)
+        conversation.messages = []
+      } finally {
+        isLoadingMessages.value = false
+      }
+    }
+  }
+
+  /**
+   * 创建新对话（本地创建，等待发送第一条消息时后端会创建）
    */
   const createConversation = (title: string = '新对话', pinnedConfigId?: string): Conversation => {
     const newConversation: Conversation = {
       id: generateId(),
       title,
-      mode: currentMode.value,
       messages: [],
       pinnedConfigId,
       createdAt: new Date(),
@@ -33,17 +97,6 @@ export const useConversationStore = defineStore('conversation', () => {
     conversations.value.unshift(newConversation)
     currentConversation.value = newConversation
     return newConversation
-  }
-
-  /**
-   * 选择对话
-   */
-  const selectConversation = (id: string) => {
-    const conversation = conversations.value.find((c) => c.id === id)
-    if (conversation) {
-      currentConversation.value = conversation
-      currentMode.value = conversation.mode
-    }
   }
 
   /**
@@ -179,13 +232,14 @@ export const useConversationStore = defineStore('conversation', () => {
   }
 
   return {
-    currentMode,
     conversations,
     currentConversation,
     groupedConversations,
-    toggleMode,
-    createConversation,
+    isLoadingConversations,
+    isLoadingMessages,
+    loadConversations,
     selectConversation,
+    createConversation,
     addMessage,
     deleteConversation,
     pinModelToConversation,

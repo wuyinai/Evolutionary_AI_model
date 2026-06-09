@@ -1,9 +1,11 @@
 package com.example.evolutionary_ai_model.controller;
 
 import com.example.evolutionary_ai_model.common.result.Result;
+import com.example.evolutionary_ai_model.entity.AiConversation;
 import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
-import com.example.evolutionary_ai_model.entity.dto.ChatResponseDTO;
+import com.example.evolutionary_ai_model.entity.vo.ConversationMessageVO;
 import com.example.evolutionary_ai_model.security.LoginUserDetails;
+import com.example.evolutionary_ai_model.service.AiChatLogService;
 import com.example.evolutionary_ai_model.service.ChatService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -15,12 +17,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+
 /**
  * 用法：AI对话Controller，负责接收前端对话请求并返回AI响应。
- * 调用ChatService处理业务逻辑，支持普通对话和流式对话两种方式。
+ * 调用ChatService处理业务逻辑，支持流式对话方式。
  * 位于表现层，只负责接收请求、参数校验、调用业务层、返回响应。
  * 支持动态模型配置，当请求中包含configId时使用DynamicChatStrategy。
  * 从认证信息获取用户ID，实现用户模型配置隔离。
+ * 提供对话历史查询接口，支持前端展示聊天记录。
  */
 @RestController
 @RequestMapping("/chat")
@@ -29,10 +34,12 @@ public class ChatController {
 
     private final ChatClient chatClient;
     private final ChatService chatService;
+    private final AiChatLogService chatLogService;
 
-    public ChatController(ChatClient.Builder chatClientBuilder, ChatService chatService) {
+    public ChatController(ChatClient.Builder chatClientBuilder, ChatService chatService, AiChatLogService chatLogService) {
         this.chatClient = chatClientBuilder.build();
         this.chatService = chatService;
+        this.chatLogService = chatLogService;
     }
 
     /**
@@ -47,40 +54,6 @@ public class ChatController {
                 .user(message)
                 .call()
                 .content();
-    }
-
-    /**
-     * 对话接口 - 使用动态模型配置进行对话
-     * 请求地址: POST /chat/send
-     * 测试数据示例:
-     * {
-     *   "conversationId": "可选，首次对话不传",
-     *   "message": "你好，请介绍一下自己",
-     *   "configId": 123456789,  // 可选，指定使用的模型配置ID
-     *   "history": [{"role": "user", "content": "历史消息"}]
-     * }
-     */
-    @PostMapping("/send")
-    public Result<ChatResponseDTO> send(@AuthenticationPrincipal UserDetails userDetails,
-                                        @Valid @RequestBody ChatRequestDTO request) {
-        logger.info("对话请求，消息长度: {}, configId: {}", 
-                request.getMessage().length(), request.getConfigId());
-
-        try {
-            // 从认证信息获取用户ID
-            Long userId = getUserId(userDetails);
-            request.setUserId(userId);
-            
-            ChatResponseDTO response = chatService.chat(request);
-            logger.info("对话成功，消息ID: {}", response.getMessageId());
-            return Result.success(response);
-        } catch (IllegalArgumentException e) {
-            logger.warn("对话参数错误: {}", e.getMessage());
-            return Result.fail(400, e.getMessage());
-        } catch (Exception e) {
-            logger.error("对话异常", e);
-            return Result.fail("AI对话失败，请稍后重试");
-        }
     }
 
     /**
@@ -125,5 +98,66 @@ public class ChatController {
         }
         logger.warn("无法获取用户ID，userDetails类型: {}", userDetails.getClass().getName());
         return null;
+    }
+
+    /**
+     * 获取会话的所有消息历史
+     * 请求地址: GET /chat/messages/{conversationId}
+     * 测试数据: conversationId参数，如 "abc123"
+     * 返回数据: 会话消息列表
+     */
+    @GetMapping("/messages/{conversationId}")
+    public Result<List<ConversationMessageVO>> getConversationMessages(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String conversationId) {
+        logger.info("获取会话消息历史，会话ID: {}", conversationId);
+
+        try {
+            // 验证用户权限（可选）
+            Long userId = getUserId(userDetails);
+
+            // 获取会话消息历史
+            List<ConversationMessageVO> messages = chatLogService.getConversationMessages(conversationId);
+
+            logger.info("获取会话消息成功，消息数量: {}", messages.size());
+            return Result.success(messages);
+
+        } catch (Exception e) {
+            logger.error("获取会话消息失败，会话ID: {}", conversationId, e);
+            return Result.fail("获取会话消息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户的所有会话列表
+     * 请求地址: GET /chat/conversations
+     * 返回数据: 会话列表
+     * 注意：如果用户未登录（userId为null），返回空列表
+     */
+    @GetMapping("/conversations")
+    public Result<List<AiConversation>> getUserConversations(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("获取用户会话列表");
+
+        try {
+            // 从认证信息获取用户ID
+            Long userId = getUserId(userDetails);
+            
+            // 如果用户未登录，返回空列表（而不是返回错误）
+            if (userId == null) {
+                logger.info("用户未登录，返回空会话列表");
+                return Result.success(List.of());
+            }
+
+            // 获取用户会话列表
+            List<AiConversation> conversations = chatLogService.getUserConversations(userId);
+
+            logger.info("获取用户会话列表成功，会话数量: {}", conversations.size());
+            return Result.success(conversations);
+
+        } catch (Exception e) {
+            logger.error("获取用户会话列表失败", e);
+            return Result.fail("获取会话列表失败: " + e.getMessage());
+        }
     }
 }

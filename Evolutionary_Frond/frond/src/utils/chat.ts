@@ -1,23 +1,6 @@
 // AI对话相关API接口
 
-import { post, get } from '@/utils/request'
-import type { ApiResponse } from '@/types/api'
-import type { SendMessageRequest, SendMessageResponse } from '@/types/conversation'
-
-/**
- * 发送对话消息
- * @param data 对话请求数据
- */
-export const sendMessage = (data: SendMessageRequest): Promise<ApiResponse<SendMessageResponse>> => {
-  return post<SendMessageResponse>('/chat/send', data)
-}
-
-/**
- * 获取支持的对话模式列表
- */
-export const getChatModes = (): Promise<ApiResponse<string[]>> => {
-  return get<string[]>('/chat/modes')
-}
+import type { SendMessageRequest } from '@/types/conversation'
 
 /**
  * 使用fetch API实现流式对话

@@ -4,8 +4,11 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.evolutionary_ai_model.entity.AiConversation;
+import com.example.evolutionary_ai_model.entity.AiConversationMessage;
 import com.example.evolutionary_ai_model.mapper.AiConversationMapper;
+import com.example.evolutionary_ai_model.mapper.AiConversationMessageMapper;
 import com.example.evolutionary_ai_model.service.AiConversationService;
+import com.example.evolutionary_ai_model.service.strategy.ChatMessageCacheStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +19,9 @@ import java.math.BigDecimal;
 
 /**
  * 用法：AI会话服务实现类，负责处理会话相关的业务逻辑。
- * 依赖AiConversationMapper进行数据持久化，实现会话创建、模型钉选等功能。
- * 位于业务逻辑层，实现会话级模型钉选逻辑。
+ * 依赖AiConversationMapper和AiConversationMessageMapper进行数据持久化。
+ * 使用ChatMessageCacheStrategy实现缓存管理。
+ * 位于业务逻辑层，实现会话级模型钉选逻辑和逻辑删除功能。
  */
 @Service
 public class AiConversationServiceImpl implements AiConversationService {
@@ -26,6 +30,12 @@ public class AiConversationServiceImpl implements AiConversationService {
 
     @Autowired
     private AiConversationMapper conversationMapper;
+
+    @Autowired
+    private AiConversationMessageMapper conversationMessageMapper;
+
+    @Autowired
+    private ChatMessageCacheStrategy cacheStrategy;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -197,5 +207,44 @@ public class AiConversationServiceImpl implements AiConversationService {
 
         conversationMapper.update(null, updateWrapper);
         logger.info("会话统计信息更新成功");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteConversation(String conversationId, Long userId) {
+        logger.info("删除会话，会话ID: {}, 用户ID: {}", conversationId, userId);
+
+        // 验证会话是否存在且属于该用户
+        AiConversation conversation = getConversation(conversationId);
+        if (conversation == null) {
+            logger.warn("会话不存在，无法删除");
+            throw new IllegalArgumentException("会话不存在");
+        }
+
+        if (!conversation.getUserId().equals(userId)) {
+            logger.warn("会话不属于该用户，无法删除");
+            throw new IllegalArgumentException("无权操作此会话");
+        }
+
+        // 逻辑删除会话记录
+        LambdaUpdateWrapper<AiConversation> conversationUpdateWrapper = new LambdaUpdateWrapper<>();
+        conversationUpdateWrapper.eq(AiConversation::getConversationId, conversationId)
+                .eq(AiConversation::getUserId, userId)
+                .set(AiConversation::getDelFlag, 1);
+
+        conversationMapper.update(null, conversationUpdateWrapper);
+        logger.info("会话记录逻辑删除成功，会话ID: {}", conversationId);
+
+        // 逻辑删除该会话的所有消息记录
+        LambdaUpdateWrapper<AiConversationMessage> messageUpdateWrapper = new LambdaUpdateWrapper<>();
+        messageUpdateWrapper.eq(AiConversationMessage::getConversationId, conversationId)
+                .set(AiConversationMessage::getDelFlag, 1);
+
+        int deletedMessageCount = conversationMessageMapper.update(null, messageUpdateWrapper);
+        logger.info("会话消息记录逻辑删除成功，删除数量: {}", deletedMessageCount);
+
+        // 清除缓存
+        cacheStrategy.clearCache(conversationId);
+        logger.info("会话缓存清除成功，会话ID: {}", conversationId);
     }
 }

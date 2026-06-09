@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
  * 位于数据访问层，映射数据库表 ai_conversation_message。
  * 包含消息角色、内容、Token数、父消息ID等信息，支持消息树结构。
  * ID字段使用ToStringSerializer序列化，避免JavaScript精度丢失。
+ * 支持逻辑删除功能，通过del_flag字段标记删除状态。
  */
 @Data
 @TableName("ai_conversation_message")
@@ -50,4 +51,8 @@ public class AiConversationMessage implements Serializable {
     // 创建时间
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    // 删除标志：0-未删除 1-已删除
+    @TableLogic
+    private Integer delFlag;
 }

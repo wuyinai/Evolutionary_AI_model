@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Conversation, Message, ConversationGroup, ApiConversation, ApiConversationMessage } from '@/types/conversation'
-import { getUserConversations, getConversationMessages } from '@/utils/conversationApi'
+import { getUserConversations, getConversationMessages, deleteConversation as deleteConversationApi } from '@/utils/conversationApi'
 
 export const useConversationStore = defineStore('conversation', () => {
   // 状态
@@ -134,7 +134,31 @@ export const useConversationStore = defineStore('conversation', () => {
   }
 
   /**
-   * 删除对话
+   * 删除对话（调用后端API进行逻辑删除）
+   */
+  const deleteConversationFromBackend = async (id: string) => {
+    try {
+      // 调用后端API删除会话
+      await deleteConversationApi(id)
+      
+      // 从本地列表中移除
+      const index = conversations.value.findIndex((c) => c.id === id)
+      if (index !== -1) {
+        conversations.value.splice(index, 1)
+        if (currentConversation.value?.id === id) {
+          currentConversation.value = conversations.value[0] || null
+        }
+      }
+      
+      console.log('会话删除成功，会话ID:', id)
+    } catch (error) {
+      console.error('删除会话失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 删除对话（本地删除，不调用后端API）
    */
   const deleteConversation = (id: string) => {
     const index = conversations.value.findIndex((c) => c.id === id)
@@ -242,6 +266,7 @@ export const useConversationStore = defineStore('conversation', () => {
     createConversation,
     addMessage,
     deleteConversation,
+    deleteConversationFromBackend,
     pinModelToConversation,
     unpinModel,
     getPinnedConfigId,

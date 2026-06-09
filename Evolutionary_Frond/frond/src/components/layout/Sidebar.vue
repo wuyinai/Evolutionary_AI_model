@@ -140,8 +140,15 @@ const handleSelectConversation = async (id: string) => {
   await conversationStore.selectConversation(id)
 }
 
-const deleteConversation = (id: string) => {
-  conversationStore.deleteConversation(id)
+const deleteConversation = async (id: string) => {
+  try {
+    // 调用后端API删除会话
+    await conversationStore.deleteConversationFromBackend(id)
+  } catch (error) {
+    console.error('删除会话失败:', error)
+    // 可以在这里添加错误提示，比如使用toast或alert
+    alert('删除会话失败，请稍后重试')
+  }
 }
 
 const handleLogout = () => {

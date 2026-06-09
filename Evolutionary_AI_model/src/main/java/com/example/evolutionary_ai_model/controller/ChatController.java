@@ -6,6 +6,7 @@ import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
 import com.example.evolutionary_ai_model.entity.vo.ConversationMessageVO;
 import com.example.evolutionary_ai_model.security.LoginUserDetails;
 import com.example.evolutionary_ai_model.service.AiChatLogService;
+import com.example.evolutionary_ai_model.service.AiConversationService;
 import com.example.evolutionary_ai_model.service.ChatService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import java.util.List;
  * 支持动态模型配置，当请求中包含configId时使用DynamicChatStrategy。
  * 从认证信息获取用户ID，实现用户模型配置隔离。
  * 提供对话历史查询接口，支持前端展示聊天记录。
+ * 提供会话删除接口，支持逻辑删除会话和消息记录。
  */
 @RestController
 @RequestMapping("/chat")
@@ -35,11 +37,14 @@ public class ChatController {
     private final ChatClient chatClient;
     private final ChatService chatService;
     private final AiChatLogService chatLogService;
+    private final AiConversationService conversationService;
 
-    public ChatController(ChatClient.Builder chatClientBuilder, ChatService chatService, AiChatLogService chatLogService) {
+    public ChatController(ChatClient.Builder chatClientBuilder, ChatService chatService, 
+            AiChatLogService chatLogService, AiConversationService conversationService) {
         this.chatClient = chatClientBuilder.build();
         this.chatService = chatService;
         this.chatLogService = chatLogService;
+        this.conversationService = conversationService;
     }
 
     /**
@@ -158,6 +163,39 @@ public class ChatController {
         } catch (Exception e) {
             logger.error("获取用户会话列表失败", e);
             return Result.fail("获取会话列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除会话（逻辑删除）
+     * 请求地址: DELETE /chat/conversations/{conversationId}
+     * 同时删除该会话的所有消息记录
+     */
+    @DeleteMapping("/conversations/{conversationId}")
+    public Result<Void> deleteConversation(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String conversationId) {
+        logger.info("删除会话，会话ID: {}", conversationId);
+
+        try {
+            // 从认证信息获取用户ID
+            Long userId = getUserId(userDetails);
+            if (userId == null) {
+                return Result.fail("用户未登录");
+            }
+
+            // 删除会话（逻辑删除）
+            conversationService.deleteConversation(conversationId, userId);
+
+            logger.info("会话删除成功，会话ID: {}", conversationId);
+            return Result.success();
+
+        } catch (IllegalArgumentException e) {
+            logger.warn("删除会话失败，原因: {}", e.getMessage());
+            return Result.fail(e.getMessage());
+        } catch (Exception e) {
+            logger.error("删除会话失败，会话ID: {}", conversationId, e);
+            return Result.fail("删除会话失败: " + e.getMessage());
         }
     }
 }

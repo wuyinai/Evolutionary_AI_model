@@ -1,6 +1,6 @@
 // 对话管理相关API接口
 
-import { get } from '@/utils/request'
+import { get, del } from '@/utils/request'
 import type { ApiConversation, ApiConversationMessage } from '@/types/conversation'
 import type { ApiResponse } from '@/types/api'
 
@@ -23,4 +23,13 @@ export const getConversationMessages = async (
 ): Promise<ApiConversationMessage[]> => {
   const response = await get<ApiConversationMessage[]>(`/chat/messages/${conversationId}`)
   return response.data || []
+}
+
+/**
+ * 删除会话（逻辑删除）
+ * @param conversationId 会话ID
+ * @returns 删除结果
+ */
+export const deleteConversation = async (conversationId: string): Promise<ApiResponse<void>> => {
+  return await del<void>(`/chat/conversations/${conversationId}`)
 }

@@ -4,7 +4,7 @@ import com.example.evolutionary_ai_model.entity.AiConversation;
 
 /**
  * 用法：AI会话服务接口，定义会话相关的业务操作。
- * 位于业务逻辑层，负责会话的创建、更新、钉选模型等业务逻辑。
+ * 位于业务逻辑层，负责会话的创建、更新、钉选模型、删除等业务逻辑。
  */
 public interface AiConversationService {
 
@@ -65,4 +65,12 @@ public interface AiConversationService {
      * @param cost 本次对话的费用
      */
     void updateStatistics(String conversationId, Long tokens, java.math.BigDecimal cost);
+
+    /**
+     * 删除会话（逻辑删除）
+     * 同时删除该会话的所有消息记录
+     * @param conversationId 会话ID
+     * @param userId 用户ID（用于权限验证）
+     */
+    void deleteConversation(String conversationId, Long userId);
 }

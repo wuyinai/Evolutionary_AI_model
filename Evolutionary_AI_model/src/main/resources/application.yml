@@ -54,3 +54,10 @@ jwt:
   expiration: 86400000
   header: Authorization
   prefix: "Bearer "
+
+# MinIO对象存储配置
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: evolutionary-ai

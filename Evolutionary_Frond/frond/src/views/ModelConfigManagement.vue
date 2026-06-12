@@ -68,6 +68,9 @@
               <h3 class="config-name">{{ config.configName }}</h3>
               <div class="config-meta">
                 <span class="model-name">{{ config.modelAlias || config.modelName }}</span>
+                <span class="model-type-badge" :class="(config.modelType || 'CHAT') === 'EMBEDDING' ? 'embedding' : 'chat'">
+                  {{ (config.modelType || 'CHAT') === 'EMBEDDING' ? '向量模型' : '对话模型' }}
+                </span>
                 <span class="provider-badge">{{ config.providerName }}</span>
                 <span v-if="config.isDefault === 1" class="default-badge">默认</span>
               </div>
@@ -100,20 +103,37 @@
                 </router-link>
               </span>
             </div>
-            <div class="info-row">
-              <label class="info-label">温度参数:</label>
-              <span class="info-value">{{ config.temperature }}</span>
+            
+            <!-- 向量模型特有信息 -->
+            <div v-if="(config.modelType || 'CHAT') === 'EMBEDDING'" class="embedding-info">
+              <div class="info-row">
+                <label class="info-label">向量维度:</label>
+                <span class="info-value">{{ config.vectorDimensions || '未设置' }}</span>
+              </div>
+              <div class="info-row">
+                <label class="info-label">相似度阈值:</label>
+                <span class="info-value">{{ config.similarityThreshold || '未设置' }}</span>
+              </div>
             </div>
-            <div class="info-row">
-              <label class="info-label">最大Token:</label>
-              <span class="info-value">{{ config.maxTokens || '未设置' }}</span>
+            
+            <!-- 对话模型特有信息 -->
+            <div v-if="(config.modelType || 'CHAT') === 'CHAT'" class="chat-info">
+              <div class="info-row">
+                <label class="info-label">温度参数:</label>
+                <span class="info-value">{{ config.temperature }}</span>
+              </div>
+              <div class="info-row">
+                <label class="info-label">最大Token:</label>
+                <span class="info-value">{{ config.maxTokens || '未设置' }}</span>
+              </div>
+              <div class="info-row">
+                <label class="info-label">流式输出:</label>
+                <span class="info-value" :class="{ 'enabled': config.isStreamingEnabled === 1 }">
+                  {{ config.isStreamingEnabled === 1 ? '启用' : '禁用' }}
+                </span>
+              </div>
             </div>
-            <div class="info-row">
-              <label class="info-label">流式输出:</label>
-              <span class="info-value" :class="{ 'enabled': config.isStreamingEnabled === 1 }">
-                {{ config.isStreamingEnabled === 1 ? '启用' : '禁用' }}
-              </span>
-            </div>
+            
             <div class="info-row">
               <label class="info-label">使用次数:</label>
               <span class="info-value">{{ config.usedCount || 0 }}</span>
@@ -452,6 +472,23 @@ onMounted(async () => {
 .model-name {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+.model-type-badge {
+  font-size: var(--font-size-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.model-type-badge.chat {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.model-type-badge.embedding {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
 }
 
 .provider-badge {

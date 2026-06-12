@@ -12,10 +12,12 @@ import com.example.evolutionary_ai_model.mapper.AiModelConfigMapper;
 import com.example.evolutionary_ai_model.service.AiModelConfigService;
 import com.example.evolutionary_ai_model.service.AiProviderConfigService;
 import com.example.evolutionary_ai_model.service.factory.ProviderChatModelFactory;
+import com.example.evolutionary_ai_model.service.factory.ProviderEmbeddingModelFactory;
 import com.example.evolutionary_ai_model.entity.vo.AiModelConfigVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,13 +40,16 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
     private final AiModelConfigMapper configMapper;
     private final AiProviderConfigService providerConfigService;
     private final ProviderChatModelFactory chatModelFactory;
+    private final ProviderEmbeddingModelFactory embeddingModelFactory;
 
-    public AiModelConfigServiceImpl(AiModelConfigMapper configMapper, 
+    public AiModelConfigServiceImpl(AiModelConfigMapper configMapper,
                                     AiProviderConfigService providerConfigService,
-                                    ProviderChatModelFactory chatModelFactory) {
+                                    ProviderChatModelFactory chatModelFactory,
+                                    ProviderEmbeddingModelFactory embeddingModelFactory) {
         this.configMapper = configMapper;
         this.providerConfigService = providerConfigService;
         this.chatModelFactory = chatModelFactory;
+        this.embeddingModelFactory = embeddingModelFactory;
     }
 
     @Override
@@ -53,6 +58,35 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
 
         LambdaQueryWrapper<AiModelConfig> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AiModelConfig::getUserId, userId)
+                .eq(AiModelConfig::getDelFlag, 0)
+                .orderByDesc(AiModelConfig::getIsDefault)
+                .orderByDesc(AiModelConfig::getCreateTime);
+
+        List<AiModelConfig> configs = configMapper.selectList(wrapper);
+
+        return configs.stream().map(config -> {
+            AiModelConfigVO vo = new AiModelConfigVO();
+            BeanUtils.copyProperties(config, vo);
+
+            // 获取供应商配置名称
+            if (config.getProviderConfigId() != null) {
+                AiProviderConfig providerConfig = providerConfigService.getConfigById(config.getProviderConfigId());
+                if (providerConfig != null) {
+                    vo.setProviderName(providerConfig.getConfigName());
+                }
+            }
+
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AiModelConfigVO> listByUserIdAndType(Long userId, String modelType) {
+        logger.info("获取用户指定类型模型配置列表，用户ID: {}, 模型类型: {}", userId, modelType);
+
+        LambdaQueryWrapper<AiModelConfig> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AiModelConfig::getUserId, userId)
+                .eq(AiModelConfig::getModelType, modelType)
                 .eq(AiModelConfig::getDelFlag, 0)
                 .orderByDesc(AiModelConfig::getIsDefault)
                 .orderByDesc(AiModelConfig::getCreateTime);
@@ -100,6 +134,9 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
         config.setUserId(userId);
 
         // 设置默认值
+        if (config.getModelType() == null || config.getModelType().isEmpty()) {
+            config.setModelType("CHAT"); // 默认为对话模型
+        }
         if (config.getTemperature() == null) {
             config.setTemperature(new BigDecimal("0.70"));
         }
@@ -237,6 +274,36 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
     }
 
     @Override
+    public AiModelConfig getDefaultConfigByType(Long userId, String modelType) {
+        logger.info("获取用户指定类型默认模型配置，用户ID: {}, 模型类型: {}", userId, modelType);
+
+        LambdaQueryWrapper<AiModelConfig> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AiModelConfig::getUserId, userId)
+                .eq(AiModelConfig::getModelType, modelType)
+                .eq(AiModelConfig::getIsDefault, 1)
+                .eq(AiModelConfig::getDelFlag, 0)
+                .eq(AiModelConfig::getStatus, 1);
+
+        AiModelConfig config = configMapper.selectOne(wrapper);
+
+        if (config == null) {
+            // 如果没有指定类型的默认模型，获取该类型的第一个可用模型
+            wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(AiModelConfig::getUserId, userId)
+                    .eq(AiModelConfig::getModelType, modelType)
+                    .eq(AiModelConfig::getDelFlag, 0)
+                    .eq(AiModelConfig::getStatus, 1)
+                    .orderByDesc(AiModelConfig::getCreateTime)
+                    .last("LIMIT 1");
+
+            config = configMapper.selectOne(wrapper);
+            logger.info("用户无指定类型默认模型，使用该类型第一个可用模型，用户ID: {}, 模型类型: {}", userId, modelType);
+        }
+
+        return config;
+    }
+
+    @Override
     public String testConnection(Long configId) {
         logger.info("测试模型连接，配置ID: {}", configId);
 
@@ -260,22 +327,57 @@ public class AiModelConfigServiceImpl implements AiModelConfigService {
         }
 
         try {
-            // 使用工厂创建ChatClient（根据协议类型动态构建）
-            ChatClient chatClient = chatModelFactory.getOrCreateChatClient(providerConfig, config);
+            // 根据模型类型选择不同的测试方式
+            String modelType = config.getModelType() != null ? config.getModelType() : "CHAT";
 
-            // 发送测试消息
-            String response = chatClient.prompt()
-                    .user("Hello, this is a connection test. Please respond with 'OK'.")
-                    .call()
-                    .content();
-
-            logger.info("模型连接测试成功，配置ID: {}, 响应: {}", configId, response);
-            return "连接成功，模型响应: " + response;
+            if ("EMBEDDING".equals(modelType)) {
+                // 测试向量模型连接
+                return testEmbeddingConnection(providerConfig, config);
+            } else {
+                // 测试对话模型连接
+                return testChatConnection(providerConfig, config);
+            }
 
         } catch (Exception e) {
             logger.error("模型连接测试失败，配置ID: {}", configId, e);
             return "连接失败: " + e.getMessage();
         }
+    }
+
+    /**
+     * 测试对话模型连接
+     */
+    private String testChatConnection(AiProviderConfig providerConfig, AiModelConfig config) {
+        logger.info("测试对话模型连接，模型: {}", config.getModelName());
+
+        // 使用工厂创建ChatClient
+        ChatClient chatClient = chatModelFactory.getOrCreateChatClient(providerConfig, config);
+
+        // 发送测试消息
+        String response = chatClient.prompt()
+                .user("Hello, this is a connection test. Please respond with 'OK'.")
+                .call()
+                .content();
+
+        logger.info("对话模型连接测试成功，模型: {}, 响应: {}", config.getModelName(), response);
+        return "连接成功，模型响应: " + response;
+    }
+
+    /**
+     * 测试向量模型连接
+     */
+    private String testEmbeddingConnection(AiProviderConfig providerConfig, AiModelConfig config) {
+        logger.info("测试向量模型连接，模型: {}", config.getModelName());
+
+        // 使用工厂创建EmbeddingModel
+        EmbeddingModel embeddingModel = embeddingModelFactory.getOrCreateEmbeddingModel(providerConfig, config);
+
+        // 发送测试文本进行向量化
+        String testText = "Hello, this is a connection test.";
+        float[] embedding = embeddingModel.embed(testText);
+
+        logger.info("向量模型连接测试成功，模型: {}, 向量维度: {}", config.getModelName(), embedding.length);
+        return String.format("连接成功，向量维度: %d", embedding.length);
     }
 
     /**

@@ -21,6 +21,14 @@ public interface AiModelConfigService {
     List<AiModelConfigVO> listByUserId(Long userId);
 
     /**
+     * 获取用户指定类型的模型配置列表
+     * @param userId 用户ID
+     * @param modelType 模型类型（CHAT-对话模型 EMBEDDING-向量模型）
+     * @return 模型配置列表
+     */
+    List<AiModelConfigVO> listByUserIdAndType(Long userId, String modelType);
+
+    /**
      * 添加模型配置
      * @param userId 用户ID
      * @param dto 添加请求DTO
@@ -62,6 +70,14 @@ public interface AiModelConfigService {
      * @return 默认模型配置实体
      */
     AiModelConfig getDefaultConfig(Long userId);
+
+    /**
+     * 获取用户指定类型的默认模型配置
+     * @param userId 用户ID
+     * @param modelType 模型类型（CHAT-对话模型 EMBEDDING-向量模型）
+     * @return 默认模型配置实体
+     */
+    AiModelConfig getDefaultConfigByType(Long userId, String modelType);
 
     /**
      * 测试模型连接

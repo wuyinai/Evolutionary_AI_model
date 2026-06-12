@@ -62,73 +62,131 @@
             <p class="form-tip">请输入供应商支持的模型名称</p>
           </div>
 
-          <!-- 模型别名（可选） -->
+          <!-- 模型类型 -->
           <div class="form-group">
+            <label class="form-label">模型类型</label>
+            <select v-model="form.modelType" class="form-select" required>
+              <option value="CHAT">对话模型（CHAT）</option>
+              <option value="EMBEDDING">向量模型（EMBEDDING）</option>
+            </select>
+            <p class="form-tip">选择模型的用途类型</p>
+          </div>
+
+          <!-- 向量模型特有配置 -->
+          <div v-if="form.modelType === 'EMBEDDING'" class="embedding-config">
+            <!-- 向量维度 -->
+            <div class="form-group">
+              <label class="form-label">向量维度</label>
+              <input
+                v-model.number="form.vectorDimensions"
+                type="number"
+                class="form-input"
+                placeholder="例如：1536"
+                min="1"
+              />
+              <p class="form-tip">向量模型的输出维度，常见值：768、1024、1536</p>
+            </div>
+
+            <!-- 相似度阈值 -->
+            <div class="form-group">
+              <label class="form-label">相似度阈值</label>
+              <div class="temperature-slider">
+                <input
+                  v-model.number="form.similarityThreshold"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  class="slider"
+                />
+                <span class="temperature-value">{{ form.similarityThreshold }}</span>
+              </div>
+              <p class="form-tip">向量相似度的最小阈值，低于此值的结果将被过滤</p>
+            </div>
+          </div>
+
+          <!-- 对话模型特有配置 -->
+          <div v-if="form.modelType === 'CHAT'" class="chat-config">
+            <!-- 模型别名（可选） -->
+            <div class="form-group">
+              <label class="form-label">模型别名（可选）</label>
+              <input
+                v-model="form.modelAlias"
+                type="text"
+                class="form-input"
+                placeholder="例如：DeepSeek聊天助手"
+              />
+              <p class="form-tip">自定义显示名称，便于识别</p>
+            </div>
+
+            <!-- 温度参数 -->
+            <div class="form-group">
+              <label class="form-label">温度参数</label>
+              <div class="temperature-slider">
+                <input
+                  v-model.number="form.temperature"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  class="slider"
+                />
+                <span class="temperature-value">{{ form.temperature }}</span>
+              </div>
+              <p class="form-tip">值越高回复越随机，值越低回复越确定</p>
+            </div>
+
+            <!-- 最大Token数 -->
+            <div class="form-group">
+              <label class="form-label">最大输出Token数</label>
+              <input
+                v-model.number="form.maxTokens"
+                type="number"
+                class="form-input"
+                placeholder="例如：4096"
+                min="1"
+                max="128000"
+              />
+              <p class="form-tip">限制模型输出的最大Token数量</p>
+            </div>
+
+            <!-- Top-P参数 -->
+            <div class="form-group">
+              <label class="form-label">Top-P采样参数</label>
+              <div class="temperature-slider">
+                <input
+                  v-model.number="form.topP"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  class="slider"
+                />
+                <span class="temperature-value">{{ form.topP }}</span>
+              </div>
+              <p class="form-tip">控制采样的多样性，建议与温度参数调整其中一个</p>
+            </div>
+
+            <!-- 是否启用流式输出 -->
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input v-model="form.isStreamingEnabled" type="checkbox" :true-value="1" :false-value="0" />
+                <span>启用流式输出</span>
+              </label>
+              <p class="form-tip">实时返回AI回复内容</p>
+            </div>
+          </div>
+
+          <!-- 模型别名（可选）- 向量模型也显示 -->
+          <div v-if="form.modelType === 'EMBEDDING'" class="form-group">
             <label class="form-label">模型别名（可选）</label>
             <input
               v-model="form.modelAlias"
               type="text"
               class="form-input"
-              placeholder="例如：DeepSeek聊天助手"
+              placeholder="例如：OpenAI向量模型"
             />
             <p class="form-tip">自定义显示名称，便于识别</p>
-          </div>
-
-          <!-- 温度参数 -->
-          <div class="form-group">
-            <label class="form-label">温度参数</label>
-            <div class="temperature-slider">
-              <input
-                v-model.number="form.temperature"
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                class="slider"
-              />
-              <span class="temperature-value">{{ form.temperature }}</span>
-            </div>
-            <p class="form-tip">值越高回复越随机，值越低回复越确定</p>
-          </div>
-
-          <!-- 最大Token数 -->
-          <div class="form-group">
-            <label class="form-label">最大输出Token数</label>
-            <input
-              v-model.number="form.maxTokens"
-              type="number"
-              class="form-input"
-              placeholder="例如：4096"
-              min="1"
-              max="128000"
-            />
-            <p class="form-tip">限制模型输出的最大Token数量</p>
-          </div>
-
-          <!-- Top-P参数 -->
-          <div class="form-group">
-            <label class="form-label">Top-P采样参数</label>
-            <div class="temperature-slider">
-              <input
-                v-model.number="form.topP"
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                class="slider"
-              />
-              <span class="temperature-value">{{ form.topP }}</span>
-            </div>
-            <p class="form-tip">控制采样的多样性，建议与温度参数调整其中一个</p>
-          </div>
-
-          <!-- 是否启用流式输出 -->
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input v-model="form.isStreamingEnabled" type="checkbox" :true-value="1" :false-value="0" />
-              <span>启用流式输出</span>
-            </label>
-            <p class="form-tip">实时返回AI回复内容</p>
           </div>
 
           <!-- 设为默认 -->
@@ -189,6 +247,9 @@ const form = ref<AiModelConfigAddDTO>({
   providerConfigId: '',
   modelName: '',
   modelAlias: '',
+  modelType: 'CHAT', // 默认为对话模型
+  vectorDimensions: 1536, // 默认向量维度
+  similarityThreshold: 0.75, // 默认相似度阈值
   temperature: 0.7,
   maxTokens: 4096,
   topP: 1.0,

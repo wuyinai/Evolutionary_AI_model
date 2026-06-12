@@ -35,6 +35,15 @@ public class AiModelConfigVO {
     // 模型别名
     private String modelAlias;
 
+    // 模型类型：CHAT-对话模型 EMBEDDING-向量模型
+    private String modelType;
+
+    // 向量维度（仅向量模型使用）
+    private Integer vectorDimensions;
+
+    // 相似度阈值（仅向量模型使用）
+    private BigDecimal similarityThreshold;
+
     // 温度参数
     private BigDecimal temperature;
 

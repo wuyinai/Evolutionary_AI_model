@@ -44,6 +44,15 @@ public class AiModelConfig implements Serializable {
     // 模型别名（用户自定义显示名称）
     private String modelAlias;
 
+    // 模型类型：CHAT-对话模型 EMBEDDING-向量模型
+    private String modelType;
+
+    // 向量维度（仅向量模型使用）
+    private Integer vectorDimensions;
+
+    // 相似度阈值（仅向量模型使用，0.00-1.00）
+    private BigDecimal similarityThreshold;
+
     // 温度参数（0.00-2.00），控制输出随机性
     private BigDecimal temperature;
 

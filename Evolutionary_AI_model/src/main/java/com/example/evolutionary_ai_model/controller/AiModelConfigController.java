@@ -52,6 +52,27 @@ public class AiModelConfigController {
     }
 
     /**
+     * 获取用户指定类型的模型配置列表
+     * 请求地址: GET /ai/config/list/{modelType}
+     * 返回数据: 用户指定类型的模型配置列表
+     */
+    @GetMapping("/list/{modelType}")
+    public Result<List<AiModelConfigVO>> listByType(@AuthenticationPrincipal UserDetails userDetails,
+                                                      @PathVariable String modelType) {
+        logger.info("获取指定类型模型配置列表请求，模型类型: {}", modelType);
+
+        try {
+            Long userId = getUserId(userDetails);
+            List<AiModelConfigVO> list = configService.listByUserIdAndType(userId, modelType);
+            logger.info("获取指定类型模型配置列表成功，数量: {}", list.size());
+            return Result.success(list);
+        } catch (Exception e) {
+            logger.error("获取指定类型模型配置列表异常", e);
+            return Result.fail("获取指定类型模型配置列表失败");
+        }
+    }
+
+    /**
      * 添加模型配置
      * 请求地址: POST /ai/config/add
      * 测试数据示例:

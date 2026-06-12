@@ -1,5 +1,11 @@
 // AI模型配置相关类型定义
 
+// 模型类型枚举
+export enum ModelType {
+  CHAT = 'CHAT',        // 对话模型
+  EMBEDDING = 'EMBEDDING' // 向量模型
+}
+
 // 模型配置VO
 export interface AiModelConfigVO {
   id: string // ID使用string类型，避免JS精度丢失
@@ -8,6 +14,9 @@ export interface AiModelConfigVO {
   providerName: string
   modelName: string
   modelAlias: string | null
+  modelType: string // 模型类型：CHAT-对话模型 EMBEDDING-向量模型
+  vectorDimensions: number | null // 向量维度（仅向量模型使用）
+  similarityThreshold: number | null // 相似度阈值（仅向量模型使用）
   temperature: number
   maxTokens: number | null
   topP?: number
@@ -46,6 +55,9 @@ export interface AiModelConfigAddDTO {
   providerConfigId: string // 关联供应商配置ID
   modelName: string
   modelAlias?: string
+  modelType?: string // 模型类型：CHAT-对话模型 EMBEDDING-向量模型（默认为CHAT）
+  vectorDimensions?: number // 向量维度（仅向量模型使用）
+  similarityThreshold?: number // 相似度阈值（仅向量模型使用）
   temperature?: number
   maxTokens?: number
   topP?: number

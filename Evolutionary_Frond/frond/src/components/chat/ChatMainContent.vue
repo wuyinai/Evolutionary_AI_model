@@ -112,7 +112,7 @@ import { useConversationStore } from '@/stores/conversation'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { streamChat, type DocumentChunk } from '@/utils/chat'
 import ModelSelector from '@/components/ModelSelector.vue'
-import KnowledgeSelector from '@/components/KnowledgeSelector.vue'
+import KnowledgeSelector, { type KnowledgeSelection } from '@/components/KnowledgeSelector.vue'
 import DocumentChunksDisplay from '@/components/DocumentChunksDisplay.vue'
 import type { ChatMessageDTO } from '@/types/conversation'
 
@@ -160,12 +160,15 @@ const onModelChange = (configId: string | null) => {
   currentConfigId.value = configId
 }
 
-// 当前选中的知识库文档ID列表
+// 当前选中的知识库文档ID列表（文档挂载）
 const selectedKnowledgeIds = ref<string[]>([])
+// 当前选中的知识库ID列表（知识库挂载）
+const selectedKnowledgeBaseIds = ref<string[]>([])
 
 // 知识库切换处理
-const onKnowledgeChange = (documentIds: string[]) => {
-  selectedKnowledgeIds.value = documentIds
+const onKnowledgeChange = (selection: KnowledgeSelection) => {
+  selectedKnowledgeIds.value = selection.documentIds
+  selectedKnowledgeBaseIds.value = selection.knowledgeBaseIds
 }
 
 // 取消钉选
@@ -226,6 +229,7 @@ const sendMessage = async () => {
         configId: configId || undefined,
         history,
         knowledgeDocumentIds: selectedKnowledgeIds.value.length > 0 ? selectedKnowledgeIds.value : undefined,
+        knowledgeBaseIds: selectedKnowledgeBaseIds.value.length > 0 ? selectedKnowledgeBaseIds.value : undefined,
         ragTopK: 3,
       },
       (chunk: string) => {

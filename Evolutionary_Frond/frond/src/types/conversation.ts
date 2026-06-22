@@ -50,6 +50,9 @@ export interface SendMessageRequest {
   configId?: string // 模型配置ID（使用string类型）
   userId?: number // 用户ID（可选，后端从认证信息获取）
   history?: ChatMessageDTO[]
+  knowledgeDocumentIds?: string[] // 文档挂载：选中文档的ID列表
+  knowledgeBaseIds?: string[] // 知识库挂载：选中知识库的ID列表（检索知识库下所有文档的文档块）
+  ragTopK?: number // RAG检索数量
 }
 
 // 会话管理API请求DTO

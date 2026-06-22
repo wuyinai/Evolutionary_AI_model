@@ -51,6 +51,30 @@ public class KnowledgeDocumentController {
     }
 
     /**
+     * 上传文档到指定知识库
+     * 请求地址: POST /knowledge/document/upload-to-base
+     * 参数: file - 上传的文件, knowledgeBaseId - 知识库ID, embeddingModelId - 向量模型配置ID（可选）
+     */
+    @PostMapping("/upload-to-base")
+    public Result<Long> uploadDocumentToKnowledgeBase(@AuthenticationPrincipal UserDetails userDetails,
+                                                       @RequestParam("file") MultipartFile file,
+                                                       @RequestParam("knowledgeBaseId") Long knowledgeBaseId,
+                                                       @RequestParam(value = "embeddingModelId", required = false) Long embeddingModelId) {
+        logger.info("上传文档到知识库请求，文件名: {}, 知识库ID: {}, 向量模型ID: {}", 
+                file.getOriginalFilename(), knowledgeBaseId, embeddingModelId);
+
+        try {
+            Long userId = getUserId(userDetails);
+            Long documentId = documentService.uploadDocumentToKnowledgeBase(file, userId, knowledgeBaseId, embeddingModelId);
+            logger.info("文档上传成功，文档ID: {}", documentId);
+            return Result.success("文档上传成功", documentId);
+        } catch (Exception e) {
+            logger.error("文档上传失败", e);
+            return Result.fail("文档上传失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 获取用户的文档列表
      * 请求地址: GET /knowledge/document/list
      */
@@ -107,6 +131,25 @@ public class KnowledgeDocumentController {
         } catch (Exception e) {
             logger.error("文档删除失败", e);
             return Result.fail("文档删除失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户的独立文档列表（不属于任何知识库）
+     * 请求地址: GET /knowledge/document/standalone
+     */
+    @GetMapping("/standalone")
+    public Result<List<KnowledgeDocument>> listStandaloneDocuments(@AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("获取独立文档列表请求");
+
+        try {
+            Long userId = getUserId(userDetails);
+            List<KnowledgeDocument> documents = documentService.listStandaloneDocuments(userId);
+            logger.info("获取独立文档列表成功，数量: {}", documents.size());
+            return Result.success(documents);
+        } catch (Exception e) {
+            logger.error("获取独立文档列表失败", e);
+            return Result.fail("获取独立文档列表失败: " + e.getMessage());
         }
     }
 

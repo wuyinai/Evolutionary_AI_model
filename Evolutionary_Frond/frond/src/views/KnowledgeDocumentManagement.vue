@@ -277,11 +277,11 @@ const selectedDocument = ref<KnowledgeDocument | null>(null)
 const uploading = ref(false)
 const fileInput = ref<HTMLInputElement>()
 
-// 加载文档列表
+// 加载文档列表（仅独立文档，不属于任何知识库）
 const loadDocuments = async () => {
   loading.value = true
   try {
-    const response = await request.get('/knowledge/document/list')
+    const response = await request.get('/knowledge/document/standalone')
     if (response.code === 200) {
       documents.value = response.data
     }

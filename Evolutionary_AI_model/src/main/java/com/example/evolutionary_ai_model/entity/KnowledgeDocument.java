@@ -30,6 +30,10 @@ public class KnowledgeDocument implements Serializable {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long userId;
 
+    // 知识库ID
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long knowledgeBaseId;
+
     // 文件类型（pdf/docx/txt）
     private String fileType;
 

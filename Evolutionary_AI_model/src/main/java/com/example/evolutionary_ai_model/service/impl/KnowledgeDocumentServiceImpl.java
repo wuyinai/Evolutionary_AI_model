@@ -2,6 +2,7 @@ package com.example.evolutionary_ai_model.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.evolutionary_ai_model.entity.DocumentChunk;
+import com.example.evolutionary_ai_model.entity.KnowledgeBase;
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
 import com.example.evolutionary_ai_model.mapper.DocumentChunkMapper;
 import com.example.evolutionary_ai_model.mapper.KnowledgeDocumentMapper;
@@ -46,15 +47,33 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
     @Autowired
     private DocumentChunkMapper documentChunkMapper;
 
+    @Autowired
+    private KnowledgeBaseService knowledgeBaseService;
+
     @Override
     @Transactional
     public Long uploadAndProcessDocument(MultipartFile file, Long userId, Long embeddingModelId) {
-        logger.info("开始上传文档，用户ID: {}, 文件名: {}", userId, file.getOriginalFilename());
+        return uploadDocumentToKnowledgeBase(file, userId, null, embeddingModelId);
+    }
+
+    @Override
+    @Transactional
+    public Long uploadDocumentToKnowledgeBase(MultipartFile file, Long userId, Long knowledgeBaseId, Long embeddingModelId) {
+        logger.info("开始上传文档，用户ID: {}, 知识库ID: {}, 文件名: {}", userId, knowledgeBaseId, file.getOriginalFilename());
+
+        // 如果指定了知识库，获取知识库的默认向量模型
+        if (knowledgeBaseId != null && embeddingModelId == null) {
+            KnowledgeBase knowledgeBase = knowledgeBaseService.getById(knowledgeBaseId);
+            if (knowledgeBase != null && knowledgeBase.getEmbeddingModelId() != null) {
+                embeddingModelId = knowledgeBase.getEmbeddingModelId();
+            }
+        }
 
         // 1. 创建文档记录
         KnowledgeDocument document = new KnowledgeDocument();
         document.setDocumentName(file.getOriginalFilename());
         document.setUserId(userId);
+        document.setKnowledgeBaseId(knowledgeBaseId);
         document.setFileType(documentParserService.getFileType(file.getOriginalFilename()));
         document.setFileSize(file.getSize());
         document.setEmbeddingModelId(embeddingModelId);
@@ -125,6 +144,7 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
                             // 创建分块记录
                             DocumentChunk chunk = new DocumentChunk();
                             chunk.setDocumentId(documentId);
+                            chunk.setKnowledgeBaseId(document.getKnowledgeBaseId());
                             chunk.setUserId(document.getUserId());
                             chunk.setChunkIndex(currentIndex);
                             chunk.setContent(chunkContent);
@@ -196,6 +216,15 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
     public List<KnowledgeDocument> listByUserId(Long userId) {
         return lambdaQuery()
                 .eq(KnowledgeDocument::getUserId, userId)
+                .orderByDesc(KnowledgeDocument::getCreateTime)
+                .list();
+    }
+
+    @Override
+    public List<KnowledgeDocument> listStandaloneDocuments(Long userId) {
+        return lambdaQuery()
+                .eq(KnowledgeDocument::getUserId, userId)
+                .isNull(KnowledgeDocument::getKnowledgeBaseId)
                 .orderByDesc(KnowledgeDocument::getCreateTime)
                 .list();
     }

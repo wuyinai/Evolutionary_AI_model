@@ -9,12 +9,12 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 文档分块实体类，存储文档分块后的文本片段。
- * 位于数据访问层，映射数据库表 document_chunk。
+ * 知识库实体类，存储知识库基本信息。
+ * 一个知识库可以包含多个文档。
  */
 @Data
-@TableName("document_chunk")
-public class DocumentChunk implements Serializable {
+@TableName("knowledge_base")
+public class KnowledgeBase implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -23,30 +23,36 @@ public class DocumentChunk implements Serializable {
     @TableId
     private Long id;
 
-    // 文档ID
-    @JsonSerialize(using = ToStringSerializer.class)
-    private Long documentId;
+    // 知识库名称
+    private String name;
 
-    // 知识库ID
-    @JsonSerialize(using = ToStringSerializer.class)
-    private Long knowledgeBaseId;
+    // 知识库描述
+    private String description;
 
     // 用户ID
     @JsonSerialize(using = ToStringSerializer.class)
     private Long userId;
 
-    // 分块序号
-    private Integer chunkIndex;
+    // 默认向量模型配置ID
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long embeddingModelId;
 
-    // 分块内容
-    private String content;
+    // 文档数量
+    private Integer documentCount;
 
-    // 向量ID（在向量数据库中的ID）
-    private String vectorId;
+    // 总分块数量
+    private Integer chunkCount;
+
+    // 知识库状态：ACTIVE-活跃 INACTIVE-停用
+    private String status;
 
     // 创建时间
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    // 更新时间
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 
     // 删除标记
     @TableLogic

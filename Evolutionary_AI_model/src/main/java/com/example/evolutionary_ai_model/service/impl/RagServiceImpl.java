@@ -2,6 +2,7 @@ package com.example.evolutionary_ai_model.service.impl;
 
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
 import com.example.evolutionary_ai_model.entity.dto.DocumentChunkDTO;
+import com.example.evolutionary_ai_model.service.KnowledgeBaseService;
 import com.example.evolutionary_ai_model.service.KnowledgeDocumentService;
 import com.example.evolutionary_ai_model.service.RagService;
 import com.example.evolutionary_ai_model.service.VectorStoreService;
@@ -31,6 +32,9 @@ public class RagServiceImpl implements RagService {
 
     @Autowired
     private KnowledgeDocumentService knowledgeDocumentService;
+
+    @Autowired
+    private KnowledgeBaseService knowledgeBaseService;
 
     @Override
     public List<String> retrieveRelevantContent(List<Long> knowledgeDocumentIds, String query, int topK) {
@@ -296,6 +300,51 @@ public class RagServiceImpl implements RagService {
 
         } catch (Exception e) {
             logger.error("RAG检索异常: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public List<DocumentChunkDTO> retrieveRelevantChunksByKnowledgeBaseIds(List<Long> knowledgeBaseIds, String query, int topK) {
+        logger.info("=== 开始RAG检索（按知识库ID） ===");
+        logger.info("知识库ID列表: {}", knowledgeBaseIds);
+        logger.info("查询内容: {}", query);
+        logger.info("topK: {}", topK);
+
+        if (knowledgeBaseIds == null || knowledgeBaseIds.isEmpty()) {
+            logger.info("知识库ID列表为空，跳过RAG检索");
+            return new ArrayList<>();
+        }
+
+        if (!StringUtils.hasText(query)) {
+            logger.warn("查询内容为空，无法进行RAG检索");
+            return new ArrayList<>();
+        }
+
+        try {
+            // 收集所有知识库下的文档ID
+            List<Long> allDocumentIds = new ArrayList<>();
+            for (Long kbId : knowledgeBaseIds) {
+                List<KnowledgeDocument> docs = knowledgeBaseService.listDocuments(kbId);
+                if (docs != null) {
+                    for (KnowledgeDocument doc : docs) {
+                        allDocumentIds.add(doc.getId());
+                    }
+                }
+            }
+
+            logger.info("知识库下文档总数: {}", allDocumentIds.size());
+
+            if (allDocumentIds.isEmpty()) {
+                logger.warn("知识库下没有文档，知识库ID列表: {}", knowledgeBaseIds);
+                return new ArrayList<>();
+            }
+
+            // 复用现有的文档ID检索方法
+            return retrieveRelevantChunks(allDocumentIds, query, topK);
+
+        } catch (Exception e) {
+            logger.error("按知识库ID检索异常: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
     }

@@ -1,5 +1,7 @@
 package com.example.evolutionary_ai_model.service;
 
+import com.example.evolutionary_ai_model.entity.dto.DocumentChunkDTO;
+
 import java.util.List;
 
 /**
@@ -16,6 +18,15 @@ public interface RagService {
      * @return 检索到的相关内容列表
      */
     List<String> retrieveRelevantContent(List<Long> knowledgeDocumentIds, String query, int topK);
+
+    /**
+     * 根据知识库文档ID列表检索相关文档块详细信息
+     * @param knowledgeDocumentIds 知识库文档ID列表
+     * @param query 用户查询
+     * @param topK 返回的最相关文档片段数量
+     * @return 检索到的文档块详细信息列表
+     */
+    List<DocumentChunkDTO> retrieveRelevantChunks(List<Long> knowledgeDocumentIds, String query, int topK);
 
     /**
      * 构建RAG增强提示词

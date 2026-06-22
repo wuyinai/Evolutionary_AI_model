@@ -2,7 +2,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Conversation, Message, ConversationGroup, ApiConversation, ApiConversationMessage } from '@/types/conversation'
+import type { Conversation, Message, ConversationGroup, ApiConversation, ApiConversationMessage, DocumentChunk } from '@/types/conversation'
 import { getUserConversations, getConversationMessages, deleteConversation as deleteConversationApi } from '@/utils/conversationApi'
 
 export const useConversationStore = defineStore('conversation', () => {
@@ -47,12 +47,23 @@ export const useConversationStore = defineStore('conversation', () => {
    * 将后端消息数据转换为前端格式
    */
   const convertApiMessageToLocal = (apiMsg: ApiConversationMessage): Message => {
+    // 解析文档块JSON字符串
+    let documentChunks: Message['documentChunks'] = undefined
+    if (apiMsg.documentChunks) {
+      try {
+        documentChunks = JSON.parse(apiMsg.documentChunks) as DocumentChunk[]
+      } catch (e) {
+        console.error('解析文档块信息失败:', e)
+      }
+    }
+    
     return {
       id: apiMsg.messageId,
       role: apiMsg.role.toLowerCase() === 'user' ? 'user' : 'assistant',
       content: apiMsg.content,
       timestamp: new Date(apiMsg.createTime),
       isStreaming: false,
+      documentChunks,
     }
   }
 
@@ -105,12 +116,14 @@ export const useConversationStore = defineStore('conversation', () => {
    * @param role 消息角色
    * @param customId 自定义消息ID（可选，用于流式输出）
    * @param isStreaming 是否正在流式输出（可选）
+   * @param documentChunks 相关的文档块信息（可选）
    */
   const addMessage = (
     content: string,
     role: 'user' | 'assistant',
     customId?: string,
     isStreaming?: boolean,
+    documentChunks?: Message['documentChunks'],
   ) => {
     if (!currentConversation.value) {
       currentConversation.value = createConversation()
@@ -122,6 +135,7 @@ export const useConversationStore = defineStore('conversation', () => {
       content,
       timestamp: new Date(),
       isStreaming: isStreaming || false,
+      documentChunks,
     }
 
     currentConversation.value.messages.push(message)

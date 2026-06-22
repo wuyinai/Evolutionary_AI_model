@@ -1,6 +1,7 @@
 package com.example.evolutionary_ai_model.service.impl;
 
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
+import com.example.evolutionary_ai_model.entity.dto.DocumentChunkDTO;
 import com.example.evolutionary_ai_model.service.KnowledgeDocumentService;
 import com.example.evolutionary_ai_model.service.RagService;
 import com.example.evolutionary_ai_model.service.VectorStoreService;
@@ -176,6 +177,126 @@ public class RagServiceImpl implements RagService {
         } catch (Exception e) {
             logger.error("检查知识库文档可用性失败: {}", e.getMessage(), e);
             return false;
+        }
+    }
+
+    @Override
+    public List<DocumentChunkDTO> retrieveRelevantChunks(List<Long> knowledgeDocumentIds, String query, int topK) {
+        logger.info("=== 开始RAG检索（返回文档块详细信息） ===");
+        logger.info("知识库文档ID列表: {}", knowledgeDocumentIds);
+        logger.info("查询内容: {}", query);
+        logger.info("topK: {}", topK);
+
+        if (knowledgeDocumentIds == null || knowledgeDocumentIds.isEmpty()) {
+            logger.info("知识库文档ID列表为空，跳过RAG检索");
+            return new ArrayList<>();
+        }
+
+        if (!StringUtils.hasText(query)) {
+            logger.warn("查询内容为空，无法进行RAG检索");
+            return new ArrayList<>();
+        }
+
+        List<DocumentChunkDTO> allRelevantChunks = new ArrayList<>();
+
+        try {
+            // 获取所有文档信息
+            List<KnowledgeDocument> documents = knowledgeDocumentService.listByIds(knowledgeDocumentIds);
+            logger.info("查询到的文档数量: {}", documents != null ? documents.size() : 0);
+
+            if (documents == null || documents.isEmpty()) {
+                logger.warn("未找到有效的知识库文档，文档ID列表: {}", knowledgeDocumentIds);
+                return new ArrayList<>();
+            }
+
+            // 过滤出状态为COMPLETED的文档
+            List<KnowledgeDocument> completedDocuments = documents.stream()
+                    .filter(doc -> "COMPLETED".equals(doc.getStatus()))
+                    .collect(Collectors.toList());
+
+            logger.info("状态为COMPLETED的文档数量: {}", completedDocuments.size());
+
+            if (completedDocuments.isEmpty()) {
+                logger.warn("没有已完成的知识库文档可用，文档ID列表: {}", knowledgeDocumentIds);
+                return new ArrayList<>();
+            }
+
+            // 按向量模型ID分组
+            Map<Long, List<KnowledgeDocument>> documentsByEmbeddingModel = completedDocuments.stream()
+                    .collect(Collectors.groupingBy(KnowledgeDocument::getEmbeddingModelId));
+
+            logger.info("按向量模型分组后的组数: {}", documentsByEmbeddingModel.size());
+
+            // 对每个向量模型进行检索
+            for (Map.Entry<Long, List<KnowledgeDocument>> entry : documentsByEmbeddingModel.entrySet()) {
+                Long embeddingModelId = entry.getKey();
+                List<KnowledgeDocument> modelDocuments = entry.getValue();
+
+                // 计算每个文档应该检索的数量（按比例分配）
+                int topKPerModel = Math.max(1, topK / documentsByEmbeddingModel.size());
+
+                logger.info("开始RAG检索，向量模型ID: {}, 文档数量: {}, 检索数量: {}",
+                        embeddingModelId, modelDocuments.size(), topKPerModel);
+
+                try {
+                    // 使用向量存储服务进行相似度搜索
+                    List<Document> searchResults = vectorStoreService.similaritySearch(
+                            query, embeddingModelId, topKPerModel);
+
+                    logger.info("向量模型 {} 检索返回结果数: {}", embeddingModelId, searchResults.size());
+
+                    // 将Document转换为DocumentChunkDTO
+                    for (Document doc : searchResults) {
+                        String content = doc.getText();
+                        if (StringUtils.hasText(content)) {
+                            // 从元数据中提取信息
+                            Map<String, Object> metadata = doc.getMetadata();
+                            Long documentId = null;
+                            String documentName = "未知文档";
+                            Integer chunkIndex = null;
+
+                            if (metadata != null) {
+                                if (metadata.get("documentId") != null) {
+                                    documentId = Long.parseLong(metadata.get("documentId").toString());
+                                }
+                                if (metadata.get("documentName") != null) {
+                                    documentName = metadata.get("documentName").toString();
+                                }
+                                if (metadata.get("chunkIndex") != null) {
+                                    chunkIndex = Integer.parseInt(metadata.get("chunkIndex").toString());
+                                }
+                            }
+
+                            DocumentChunkDTO chunkDTO = new DocumentChunkDTO(
+                                    doc.getId(),
+                                    content,
+                                    documentId,
+                                    documentName,
+                                    chunkIndex,
+                                    null // SimpleVectorStore不返回相似度得分
+                            );
+
+                            allRelevantChunks.add(chunkDTO);
+                            logger.debug("检索到文档块，ID: {}, 文档: {}, 内容长度: {}",
+                                    doc.getId(), documentName, content.length());
+                        }
+                    }
+
+                    logger.info("向量模型 {} 检索完成，返回 {} 条文档块", embeddingModelId, searchResults.size());
+
+                } catch (Exception e) {
+                    logger.error("向量模型 {} 检索失败: {}", embeddingModelId, e.getMessage(), e);
+                    // 继续处理其他向量模型，不中断整个流程
+                }
+            }
+
+            logger.info("RAG检索完成，总共返回 {} 条文档块", allRelevantChunks.size());
+            logger.info("=== RAG检索结束 ===");
+            return allRelevantChunks;
+
+        } catch (Exception e) {
+            logger.error("RAG检索异常: {}", e.getMessage(), e);
+            return new ArrayList<>();
         }
     }
 }

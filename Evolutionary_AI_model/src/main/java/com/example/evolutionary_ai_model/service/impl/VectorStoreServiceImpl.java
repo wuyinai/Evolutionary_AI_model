@@ -3,8 +3,10 @@ package com.example.evolutionary_ai_model.service.impl;
 import com.example.evolutionary_ai_model.entity.AiModelConfig;
 import com.example.evolutionary_ai_model.entity.AiProviderConfig;
 import com.example.evolutionary_ai_model.entity.DocumentChunk;
+import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
 import com.example.evolutionary_ai_model.service.AiModelConfigService;
 import com.example.evolutionary_ai_model.service.AiProviderConfigService;
+import com.example.evolutionary_ai_model.service.KnowledgeDocumentService;
 import com.example.evolutionary_ai_model.service.VectorStoreService;
 import com.example.evolutionary_ai_model.service.factory.ProviderEmbeddingModelFactory;
 import org.slf4j.Logger;
@@ -14,6 +16,7 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -37,6 +40,7 @@ public class VectorStoreServiceImpl implements VectorStoreService {
     private final ProviderEmbeddingModelFactory embeddingModelFactory;
     private final AiModelConfigService modelConfigService;
     private final AiProviderConfigService providerConfigService;
+    private final KnowledgeDocumentService knowledgeDocumentService;
 
     // 为每个向量模型配置维护一个独立的VectorStore
     private final Map<Long, VectorStore> vectorStoreMap = new ConcurrentHashMap<>();
@@ -47,10 +51,12 @@ public class VectorStoreServiceImpl implements VectorStoreService {
 
     public VectorStoreServiceImpl(ProviderEmbeddingModelFactory embeddingModelFactory,
                                    AiModelConfigService modelConfigService,
-                                   AiProviderConfigService providerConfigService) {
+                                   AiProviderConfigService providerConfigService,
+                                   @Lazy KnowledgeDocumentService knowledgeDocumentService) {
         this.embeddingModelFactory = embeddingModelFactory;
         this.modelConfigService = modelConfigService;
         this.providerConfigService = providerConfigService;
+        this.knowledgeDocumentService = knowledgeDocumentService;
     }
 
     /**
@@ -87,6 +93,9 @@ public class VectorStoreServiceImpl implements VectorStoreService {
             // 获取或创建VectorStore
             VectorStore vectorStore = getOrCreateVectorStore(embeddingModelId);
 
+            // 缓存文档名称，避免重复查询
+            Map<Long, String> documentNameCache = new HashMap<>();
+
             // 创建Document列表
             List<Document> documents = chunks.stream()
                     .map(chunk -> {
@@ -94,6 +103,14 @@ public class VectorStoreServiceImpl implements VectorStoreService {
                         metadata.put("documentId", chunk.getDocumentId().toString());
                         metadata.put("chunkIndex", chunk.getChunkIndex().toString());
                         metadata.put("userId", chunk.getUserId().toString());
+
+                        // 添加文档名称到元数据
+                        String documentName = documentNameCache.computeIfAbsent(chunk.getDocumentId(), docId -> {
+                            KnowledgeDocument doc = knowledgeDocumentService.getById(docId);
+                            return doc != null ? doc.getDocumentName() : "未知文档";
+                        });
+                        metadata.put("documentName", documentName);
+
                         return new Document(chunk.getId().toString(), chunk.getContent(), metadata);
                     })
                     .collect(Collectors.toList());

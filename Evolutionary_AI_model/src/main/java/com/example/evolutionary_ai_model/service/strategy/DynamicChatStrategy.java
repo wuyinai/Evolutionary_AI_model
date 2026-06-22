@@ -4,12 +4,14 @@ import cn.hutool.core.util.IdUtil;
 import com.example.evolutionary_ai_model.entity.*;
 import com.example.evolutionary_ai_model.entity.dto.ChatMessageDTO;
 import com.example.evolutionary_ai_model.entity.dto.ChatRequestDTO;
+import com.example.evolutionary_ai_model.entity.dto.DocumentChunkDTO;
 import com.example.evolutionary_ai_model.service.AiChatLogService;
 import com.example.evolutionary_ai_model.service.AiConversationService;
 import com.example.evolutionary_ai_model.service.AiModelConfigService;
 import com.example.evolutionary_ai_model.service.AiProviderConfigService;
 import com.example.evolutionary_ai_model.service.RagService;
 import com.example.evolutionary_ai_model.service.factory.ProviderChatModelFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -58,6 +60,10 @@ public class DynamicChatStrategy {
     @Autowired
     private RagService ragService;
 
+    // JSON序列化工具
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public Flux<String> streamChat(ChatRequestDTO request) {
         logger.info("动态模式流式对话请求，消息内容长度: {}", request.getMessage().length());
 
@@ -83,14 +89,22 @@ public class DynamicChatStrategy {
             // 最终提示词（可能经过RAG增强）
             String prompt;
 
+            // 检索到的文档块信息（用于前端展示）
+            List<DocumentChunkDTO> relevantChunks = new ArrayList<>();
+
             // 如果指定了知识库文档ID列表，进行RAG检索增强
             if (request.getKnowledgeDocumentIds() != null && !request.getKnowledgeDocumentIds().isEmpty()) {
                 logger.info("开始RAG检索增强，知识库文档数量: {}", request.getKnowledgeDocumentIds().size());
 
-                // 检索相关内容
+                // 检索相关文档块
                 int topK = request.getRagTopK() != null ? request.getRagTopK() : 3;
-                List<String> relevantContent = ragService.retrieveRelevantContent(
+                relevantChunks = ragService.retrieveRelevantChunks(
                         request.getKnowledgeDocumentIds(), request.getMessage(), topK);
+
+                // 提取文本内容用于构建提示词
+                List<String> relevantContent = relevantChunks.stream()
+                        .map(DocumentChunkDTO::getContent)
+                        .collect(java.util.stream.Collectors.toList());
 
                 // 构建RAG增强提示词
                 prompt = ragService.buildRagPrompt(basePrompt, relevantContent);
@@ -106,8 +120,25 @@ public class DynamicChatStrategy {
             // 使用AtomicReference收集响应内容
             AtomicReference<StringBuilder> responseBuilder = new AtomicReference<>(new StringBuilder());
 
+            // 最终的文档块列表（用于lambda表达式）
+            final List<DocumentChunkDTO> finalRelevantChunks = relevantChunks;
+
+            // 构建流式响应
+            Flux<String> documentChunksFlux = Flux.empty();
+            if (!finalRelevantChunks.isEmpty()) {
+                try {
+                    // 发送文档块信息作为第一个事件
+                    // 注意：不要手动添加 "data:" 前缀，Spring WebFlux会自动添加
+                    String chunksJson = objectMapper.writeValueAsString(finalRelevantChunks);
+                    documentChunksFlux = Flux.just(chunksJson);
+                    logger.info("发送文档块信息，数量: {}", finalRelevantChunks.size());
+                } catch (Exception e) {
+                    logger.error("序列化文档块信息失败", e);
+                }
+            }
+
             // 流式调用AI模型，并在流式响应过程中收集内容
-            return chatClient.prompt()
+            Flux<String> chatFlux = chatClient.prompt()
                     .user(prompt)
                     .stream()
                     .content()
@@ -124,18 +155,21 @@ public class DynamicChatStrategy {
 
                         logger.info("流式响应完成，总长度: {}, 耗时: {}ms", responseContent.length(), latencyMs);
 
-                        // 异步保存聊天日志和会话消息
-                        saveChatLogAndMessageAsync(request, modelConfig, providerConfig, 
-                                prompt, responseContent, requestTime, latencyMs);
+                        // 异步保存聊天日志和会话消息（包含文档块信息）
+                        saveChatLogAndMessageAsync(request, modelConfig, providerConfig,
+                                prompt, responseContent, requestTime, latencyMs, finalRelevantChunks);
                     })
                     // 流式响应出错时，记录错误日志
                     .doOnError(error -> {
                         logger.error("流式响应出错，会话ID: {}", request.getConversationId(), error);
 
                         // 异步保存错误日志
-                        saveErrorLogAsync(request, modelConfig, providerConfig, 
+                        saveErrorLogAsync(request, modelConfig, providerConfig,
                                 prompt, error.getMessage(), requestTime);
                     });
+
+            // 合并文档块信息和AI回复内容
+            return Flux.concat(documentChunksFlux, chatFlux);
 
         } catch (Exception e) {
             logger.error("动态模式流式对话异常", e);
@@ -230,10 +264,11 @@ public class DynamicChatStrategy {
      * @param responseContent 响应内容
      * @param requestTime 请求时间
      * @param latencyMs 响应耗时
+     * @param documentChunks 文档块信息列表
      */
     private void saveChatLogAndMessageAsync(ChatRequestDTO request, AiModelConfig modelConfig, 
             AiProviderConfig providerConfig, String requestContent, String responseContent, 
-            LocalDateTime requestTime, long latencyMs) {
+            LocalDateTime requestTime, long latencyMs, List<DocumentChunkDTO> documentChunks) {
         try {
             // 创建或更新会话记录（确保会话表有数据）
             String conversationId = request.getConversationId();
@@ -282,6 +317,17 @@ public class DynamicChatStrategy {
             assistantMessage.setRole("ASSISTANT");
             assistantMessage.setContent(responseContent);
             assistantMessage.setLogId(chatLog.getId());
+            
+            // 如果有文档块信息，序列化为JSON并设置到消息中
+            if (documentChunks != null && !documentChunks.isEmpty()) {
+                try {
+                    String chunksJson = objectMapper.writeValueAsString(documentChunks);
+                    assistantMessage.setDocumentChunks(chunksJson);
+                    logger.info("保存文档块信息到消息，数量: {}", documentChunks.size());
+                } catch (Exception e) {
+                    logger.error("序列化文档块信息失败", e);
+                }
+            }
 
             // 异步保存会话消息
             List<AiConversationMessage> messages = new ArrayList<>();

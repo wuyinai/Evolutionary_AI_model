@@ -26,6 +26,9 @@ public class ConversationMessageVO {
     // 消息内容
     private String content;
 
+    // 知识库文档块信息（JSON格式）
+    private String documentChunks;
+
     // Token数
     private Integer tokens;
 

@@ -1,6 +1,7 @@
 package com.example.evolutionary_ai_model.service.strategy;
 
 import com.example.evolutionary_ai_model.entity.AiConversationMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,6 +45,10 @@ public class ChatMessageCacheStrategy {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    // JSON序列化工具
+    @Autowired
+    private ObjectMapper objectMapper;
+
     /**
      * 从缓存获取会话消息列表（二级缓存读取策略）
      * 优先从一级缓存读取，未命中则从二级缓存读取并回填一级缓存
@@ -57,7 +63,8 @@ public class ChatMessageCacheStrategy {
         if (localCache != null) {
             Cache.ValueWrapper wrapper = localCache.get(cacheKey);
             if (wrapper != null) {
-                List<AiConversationMessage> messages = (List<AiConversationMessage>) wrapper.get();
+                Object cachedObj = wrapper.get();
+                List<AiConversationMessage> messages = convertToMessageList(cachedObj);
                 if (messages != null) {
                     logger.info("一级缓存命中，会话ID: {}, 消息数量: {}", conversationId, messages.size());
                     return messages;
@@ -70,11 +77,12 @@ public class ChatMessageCacheStrategy {
         if (redisCache != null) {
             Cache.ValueWrapper wrapper = redisCache.get(cacheKey);
             if (wrapper != null) {
-                List<AiConversationMessage> messages = (List<AiConversationMessage>) wrapper.get();
+                Object cachedObj = wrapper.get();
+                List<AiConversationMessage> messages = convertToMessageList(cachedObj);
                 if (messages != null) {
                     logger.info("二级缓存命中，会话ID: {}, 消息数量: {}", conversationId, messages.size());
 
-                    // 回填一级缓存
+                    // 回填一级缓存（使用转换后的正确类型）
                     if (localCache != null) {
                         localCache.put(cacheKey, messages);
                         logger.info("回填一级缓存成功，会话ID: {}", conversationId);
@@ -86,6 +94,51 @@ public class ChatMessageCacheStrategy {
         }
 
         logger.info("缓存未命中，会话ID: {}", conversationId);
+        return null;
+    }
+
+    /**
+     * 将缓存对象转换为消息列表（处理LinkedHashMap反序列化问题）
+     * @param cachedObj 缓存中的对象
+     * @return 消息列表
+     */
+    private List<AiConversationMessage> convertToMessageList(Object cachedObj) {
+        if (cachedObj == null) {
+            return null;
+        }
+
+        // 如果已经是正确的类型，直接返回
+        if (cachedObj instanceof List) {
+            List<?> list = (List<?>) cachedObj;
+            if (list.isEmpty()) {
+                return new ArrayList<>();
+            }
+
+            // 检查第一个元素是否是正确的类型
+            Object first = list.get(0);
+            if (first instanceof AiConversationMessage) {
+                return (List<AiConversationMessage>) cachedObj;
+            }
+
+            // 如果是LinkedHashMap，需要转换
+            if (first instanceof Map) {
+                try {
+                    List<AiConversationMessage> messages = new ArrayList<>();
+                    for (Object item : list) {
+                        // 使用Jackson将Map转换为实体对象
+                        AiConversationMessage message = objectMapper.convertValue(item, AiConversationMessage.class);
+                        messages.add(message);
+                    }
+                    logger.info("缓存数据类型转换成功，转换数量: {}", messages.size());
+                    return messages;
+                } catch (Exception e) {
+                    logger.error("缓存数据类型转换失败", e);
+                    return null;
+                }
+            }
+        }
+
+        logger.warn("缓存数据类型未知: {}", cachedObj.getClass().getName());
         return null;
     }
 

@@ -2,12 +2,26 @@
 
 export type MessageRole = 'user' | 'assistant'
 
+/**
+ * 文档块信息接口
+ */
+export interface DocumentChunk {
+  chunkId?: string
+  content: string
+  documentId?: number
+  documentName?: string
+  chunkIndex?: number
+  similarityScore?: number
+  summary?: string
+}
+
 export interface Message {
   id: string
   role: MessageRole
   content: string
   timestamp: Date
   isStreaming?: boolean // 是否正在流式输出
+  documentChunks?: DocumentChunk[] // 相关的文档块信息
 }
 
 export interface Conversation {
@@ -86,6 +100,7 @@ export interface ApiConversationMessage {
   conversationId: string // 会话ID
   role: string // 角色：USER-用户、ASSISTANT-助手、SYSTEM-系统
   content: string // 消息内容
+  documentChunks?: string // 知识库文档块信息（JSON字符串）
   tokens?: number // Token数
   parentMessageId?: string // 父消息ID
   logId?: string // 关联的日志ID

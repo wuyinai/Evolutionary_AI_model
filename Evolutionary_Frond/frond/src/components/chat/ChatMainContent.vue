@@ -35,6 +35,11 @@
               <!-- 流式输出时显示闪烁的光标 -->
               <span v-if="message.isStreaming" class="streaming-cursor">▊</span>
             </div>
+            <!-- 文档块展示组件 -->
+            <DocumentChunksDisplay
+              v-if="message.role === 'assistant' && message.documentChunks && message.documentChunks.length > 0"
+              :chunks="message.documentChunks"
+            />
           </div>
         </div>
       </div>
@@ -105,9 +110,10 @@
 import { ref, computed, nextTick, watch } from 'vue'
 import { useConversationStore } from '@/stores/conversation'
 import { useModelConfigStore } from '@/stores/modelConfig'
-import { streamChat } from '@/utils/chat'
+import { streamChat, type DocumentChunk } from '@/utils/chat'
 import ModelSelector from '@/components/ModelSelector.vue'
 import KnowledgeSelector from '@/components/KnowledgeSelector.vue'
+import DocumentChunksDisplay from '@/components/DocumentChunksDisplay.vue'
 import type { ChatMessageDTO } from '@/types/conversation'
 
 const conversationStore = useConversationStore()
@@ -206,10 +212,13 @@ const sendMessage = async () => {
   // 流式内容累积
   let accumulatedContent = ''
 
+  // 文档块信息
+  let documentChunks: DocumentChunk[] = []
+
   try {
     const pinnedConfigId = conversationStore.getPinnedConfigId()
     const configId = pinnedConfigId || currentConfigId.value || modelConfigStore.currentModel?.id || null
-    
+
     await streamChat(
       {
         conversationId: conversationStore.currentConversation?.id,
@@ -252,11 +261,20 @@ const sendMessage = async () => {
           )
           if (msgIndex !== -1 && conversationStore.currentConversation.messages[msgIndex]) {
             conversationStore.currentConversation.messages[msgIndex].isStreaming = false
+            // 设置文档块信息
+            if (documentChunks.length > 0) {
+              conversationStore.currentConversation.messages[msgIndex].documentChunks = documentChunks
+            }
           }
         }
         isLoading.value = false
         streamingMessageId.value = null
         scrollToBottom()
+      },
+      (chunks: DocumentChunk[]) => {
+        // 处理文档块信息
+        documentChunks = chunks
+        console.log('接收到文档块信息:', chunks.length, '个')
       },
     )
   } catch (error) {

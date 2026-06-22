@@ -38,6 +38,12 @@ const router = createRouter({
           component: () => import('../views/AgentView.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'knowledge-document',
+          name: 'knowledgeDocument',
+          component: () => import('../views/KnowledgeDocumentManagement.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     {

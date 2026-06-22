@@ -8,6 +8,7 @@ import com.example.evolutionary_ai_model.service.AiChatLogService;
 import com.example.evolutionary_ai_model.service.AiConversationService;
 import com.example.evolutionary_ai_model.service.AiModelConfigService;
 import com.example.evolutionary_ai_model.service.AiProviderConfigService;
+import com.example.evolutionary_ai_model.service.RagService;
 import com.example.evolutionary_ai_model.service.factory.ProviderChatModelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,10 @@ public class DynamicChatStrategy {
     @Autowired
     private AiChatLogService chatLogService;
 
+    // RAG服务
+    @Autowired
+    private RagService ragService;
+
     public Flux<String> streamChat(ChatRequestDTO request) {
         logger.info("动态模式流式对话请求，消息内容长度: {}", request.getMessage().length());
 
@@ -72,8 +77,27 @@ public class DynamicChatStrategy {
             // 使用工厂创建ChatClient
             ChatClient chatClient = chatModelFactory.getOrCreateChatClient(providerConfig, modelConfig);
 
-            // 构建提示词
-            String prompt = buildPrompt(request.getMessage(), request.getHistory());
+            // 构建基础提示词
+            String basePrompt = buildPrompt(request.getMessage(), request.getHistory());
+
+            // 最终提示词（可能经过RAG增强）
+            String prompt;
+
+            // 如果指定了知识库文档ID列表，进行RAG检索增强
+            if (request.getKnowledgeDocumentIds() != null && !request.getKnowledgeDocumentIds().isEmpty()) {
+                logger.info("开始RAG检索增强，知识库文档数量: {}", request.getKnowledgeDocumentIds().size());
+
+                // 检索相关内容
+                int topK = request.getRagTopK() != null ? request.getRagTopK() : 3;
+                List<String> relevantContent = ragService.retrieveRelevantContent(
+                        request.getKnowledgeDocumentIds(), request.getMessage(), topK);
+
+                // 构建RAG增强提示词
+                prompt = ragService.buildRagPrompt(basePrompt, relevantContent);
+                logger.info("RAG增强提示词构建完成，相关内容数量: {}", relevantContent.size());
+            } else {
+                prompt = basePrompt;
+            }
 
             // 记录请求开始时间
             LocalDateTime requestTime = LocalDateTime.now();

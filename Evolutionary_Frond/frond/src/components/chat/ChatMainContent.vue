@@ -46,6 +46,9 @@
         <!-- 模型选择器 -->
         <ModelSelector :disabled="isLoading" @change="onModelChange" />
 
+        <!-- 知识库选择器 -->
+        <KnowledgeSelector :disabled="isLoading" @change="onKnowledgeChange" />
+
         <!-- 钉选模型显示 -->
         <div v-if="pinnedModelInfo" class="pinned-model-info">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -104,6 +107,7 @@ import { useConversationStore } from '@/stores/conversation'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { streamChat } from '@/utils/chat'
 import ModelSelector from '@/components/ModelSelector.vue'
+import KnowledgeSelector from '@/components/KnowledgeSelector.vue'
 import type { ChatMessageDTO } from '@/types/conversation'
 
 const conversationStore = useConversationStore()
@@ -148,6 +152,14 @@ watch(() => conversationStore.currentConversation?.id, async (newId, oldId) => {
 // 模型切换处理
 const onModelChange = (configId: string | null) => {
   currentConfigId.value = configId
+}
+
+// 当前选中的知识库文档ID列表
+const selectedKnowledgeIds = ref<string[]>([])
+
+// 知识库切换处理
+const onKnowledgeChange = (documentIds: string[]) => {
+  selectedKnowledgeIds.value = documentIds
 }
 
 // 取消钉选
@@ -204,6 +216,8 @@ const sendMessage = async () => {
         message: userMessage,
         configId: configId || undefined,
         history,
+        knowledgeDocumentIds: selectedKnowledgeIds.value.length > 0 ? selectedKnowledgeIds.value : undefined,
+        ragTopK: 3,
       },
       (chunk: string) => {
         accumulatedContent += chunk

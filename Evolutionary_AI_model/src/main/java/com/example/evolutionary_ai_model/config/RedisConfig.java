@@ -1,5 +1,9 @@
 package com.example.evolutionary_ai_model.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -26,20 +30,32 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
 
+        // 创建支持Java 8日期时间类型的ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        // 注册JavaTimeModule以支持LocalDateTime等Java 8日期时间类型
+        objectMapper.registerModule(new JavaTimeModule());
+        // 禁用将日期写为时间戳的特性，使用ISO-8601格式
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 忽略null值
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        // 创建配置了JavaTimeModule的JSON序列化器
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+
         // 设置Key序列化器
         template.setKeySerializer(new StringRedisSerializer());
 
         // 设置Value序列化器
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setValueSerializer(jsonSerializer);
 
         // 设置Hash Key序列化器
         template.setHashKeySerializer(new StringRedisSerializer());
 
         // 设置Hash Value序列化器
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashValueSerializer(jsonSerializer);
 
         // 设置默认序列化器
-        template.setDefaultSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setDefaultSerializer(jsonSerializer);
 
         template.afterPropertiesSet();
         return template;

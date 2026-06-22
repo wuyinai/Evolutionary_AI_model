@@ -1,5 +1,9 @@
 package com.example.evolutionary_ai_model.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -58,6 +62,15 @@ public class CacheConfig {
      */
     @Bean("redisCacheManager")
     public CacheManager redisCacheManager(RedisConnectionFactory redisConnectionFactory) {
+        // 创建支持Java 8日期时间类型的ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        // 注册JavaTimeModule以支持LocalDateTime等Java 8日期时间类型
+        objectMapper.registerModule(new JavaTimeModule());
+        // 禁用将日期写为时间戳的特性，使用ISO-8601格式
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 忽略null值
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
         // 配置Redis缓存序列化和过期时间
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 // 设置缓存过期时间（30分钟）
@@ -66,8 +79,9 @@ public class CacheConfig {
                 .disableCachingNullValues()
                 // 设置Key序列化器
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                // 设置Value序列化器（使用JSON序列化）
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+                // 设置Value序列化器（使用配置了JavaTimeModule的JSON序列化器）
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                        new GenericJackson2JsonRedisSerializer(objectMapper)));
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(config)

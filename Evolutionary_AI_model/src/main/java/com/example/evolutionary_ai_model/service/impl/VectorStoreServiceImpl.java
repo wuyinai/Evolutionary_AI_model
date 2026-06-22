@@ -138,7 +138,9 @@ public class VectorStoreServiceImpl implements VectorStoreService {
             // 打印搜索结果详情
             for (int i = 0; i < results.size(); i++) {
                 Document doc = results.get(i);
-                logger.debug("结果 #{}: ID={}, 内容长度={}", i + 1, doc.getId(), doc.getText().length());
+                String text = doc.getText();
+                int length = text != null ? text.length() : 0;
+                logger.debug("结果 #{}: ID={}, 内容长度={}", i + 1, doc.getId(), length);
             }
 
             return results;

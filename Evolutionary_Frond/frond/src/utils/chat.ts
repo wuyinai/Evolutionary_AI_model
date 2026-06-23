@@ -101,8 +101,7 @@ export const streamChat = async (
                   Array.isArray(parsed) &&
                   parsed.length > 0 &&
                   parsed[0].chunkId &&
-                  parsed[0].content &&
-                  parsed[0].documentId
+                  parsed[0].content
                 ) {
                   // 这是文档块信息，调用回调并跳过
                   console.log('✓ 检测到文档块信息:', parsed.length, '个')

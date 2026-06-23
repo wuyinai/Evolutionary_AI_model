@@ -81,6 +81,25 @@ public class AiChatLogServiceImpl implements AiChatLogService {
             conversationMessageMapper.insert(message);
             logger.info("会话消息保存成功，消息ID: {}", message.getMessageId());
 
+            // 保存成功后，更新缓存（确保缓存与数据库一致）
+            String conversationId = message.getConversationId();
+            
+            // 先清除旧缓存
+            cacheStrategy.clearCache(conversationId);
+            logger.info("清除旧缓存，会话ID: {}", conversationId);
+
+            // 从数据库重新加载该会话的所有消息
+            LambdaQueryWrapper<AiConversationMessage> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(AiConversationMessage::getConversationId, conversationId)
+                    .orderByAsc(AiConversationMessage::getCreateTime);
+            List<AiConversationMessage> allMessages = conversationMessageMapper.selectList(queryWrapper);
+
+            // 将完整消息列表写入缓存
+            if (allMessages != null && !allMessages.isEmpty()) {
+                cacheStrategy.putToCache(conversationId, allMessages);
+                logger.info("更新缓存成功，会话ID: {}, 消息数量: {}", conversationId, allMessages.size());
+            }
+
         } catch (Exception e) {
             logger.error("会话消息保存失败，会话ID: {}", message.getConversationId(), e);
         }
@@ -91,6 +110,14 @@ public class AiChatLogServiceImpl implements AiChatLogService {
     @Transactional(rollbackFor = Exception.class)
     public void saveConversationMessagesAsync(List<AiConversationMessage> messages) {
         logger.info("批量异步保存会话消息，消息数量: {}", messages.size());
+
+        if (messages == null || messages.isEmpty()) {
+            logger.warn("消息列表为空，跳过保存");
+            return;
+        }
+
+        // 获取会话ID（所有消息应该属于同一个会话）
+        String conversationId = messages.get(0).getConversationId();
 
         try {
             for (AiConversationMessage message : messages) {
@@ -106,6 +133,23 @@ public class AiChatLogServiceImpl implements AiChatLogService {
             }
 
             logger.info("批量会话消息保存成功，保存数量: {}", messages.size());
+
+            // 保存成功后，更新缓存（确保缓存与数据库一致）
+            // 先清除旧缓存，再写入新数据
+            cacheStrategy.clearCache(conversationId);
+            logger.info("清除旧缓存，会话ID: {}", conversationId);
+
+            // 从数据库重新加载该会话的所有消息（确保数据完整）
+            LambdaQueryWrapper<AiConversationMessage> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(AiConversationMessage::getConversationId, conversationId)
+                    .orderByAsc(AiConversationMessage::getCreateTime);
+            List<AiConversationMessage> allMessages = conversationMessageMapper.selectList(queryWrapper);
+
+            // 将完整消息列表写入缓存
+            if (allMessages != null && !allMessages.isEmpty()) {
+                cacheStrategy.putToCache(conversationId, allMessages);
+                logger.info("更新缓存成功，会话ID: {}, 消息数量: {}", conversationId, allMessages.size());
+            }
 
         } catch (Exception e) {
             logger.error("批量会话消息保存失败", e);

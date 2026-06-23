@@ -162,7 +162,14 @@
             <artifactId>pdfbox</artifactId>
             <version>2.0.31</version>
         </dependency>
-        
+        <!--Milvus向量数据库-->
+        <dependency>
+            <groupId>io.milvus</groupId>
+            <artifactId>milvus-sdk-java</artifactId>
+            <version>2.6.18</version>
+        </dependency>
+
+
         <!--Spring AI Vector Store - 包含VectorStore和SimpleVectorStore-->
         <dependency>
             <groupId>org.springframework.ai</groupId>

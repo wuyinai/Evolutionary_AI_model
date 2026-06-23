@@ -28,6 +28,16 @@ public interface VectorStoreService {
     List<Document> similaritySearch(String query, Long embeddingModelId, int topK);
 
     /**
+     * 相似度搜索（支持文档ID过滤）
+     * @param query 查询文本
+     * @param embeddingModelId 向量模型配置ID
+     * @param topK 返回的最相似文档数量
+     * @param documentIds 文档ID列表（仅返回这些文档的向量）
+     * @return 相似文档列表
+     */
+    List<Document> similaritySearch(String query, Long embeddingModelId, int topK, List<Long> documentIds);
+
+    /**
      * 删除文档的所有向量
      * @param documentId 文档ID
      */

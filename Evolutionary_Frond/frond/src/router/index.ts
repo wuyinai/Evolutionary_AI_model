@@ -50,6 +50,12 @@ const router = createRouter({
           component: () => import('../views/KnowledgeBaseManagement.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'skills',
+          name: 'skills',
+          component: () => import('../views/SkillManagement.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     {

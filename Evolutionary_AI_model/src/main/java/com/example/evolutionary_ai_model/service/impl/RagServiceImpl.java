@@ -102,9 +102,14 @@ public class RagServiceImpl implements RagService {
                         embeddingModelId, docCount, topKPerModel);
 
                 try {
-                    // 使用向量存储服务进行相似度搜索
+                    // 获取当前向量模型下的文档ID列表
+                    List<Long> modelDocumentIds = modelDocuments.stream()
+                            .map(KnowledgeDocument::getId)
+                            .collect(Collectors.toList());
+
+                    // 使用向量存储服务进行相似度搜索（带文档ID过滤）
                     List<Document> searchResults = vectorStoreService.similaritySearch(
-                            query, embeddingModelId, topKPerModel);
+                            query, embeddingModelId, topKPerModel, modelDocumentIds);
 
                     logger.info("向量模型 {} 检索返回结果数: {}", embeddingModelId, searchResults.size());
 
@@ -243,9 +248,14 @@ public class RagServiceImpl implements RagService {
                         embeddingModelId, modelDocuments.size(), topKPerModel);
 
                 try {
-                    // 使用向量存储服务进行相似度搜索
+                    // 获取当前向量模型下的文档ID列表
+                    List<Long> modelDocumentIds = modelDocuments.stream()
+                            .map(KnowledgeDocument::getId)
+                            .collect(Collectors.toList());
+
+                    // 使用向量存储服务进行相似度搜索（带文档ID过滤）
                     List<Document> searchResults = vectorStoreService.similaritySearch(
-                            query, embeddingModelId, topKPerModel);
+                            query, embeddingModelId, topKPerModel, modelDocumentIds);
 
                     logger.info("向量模型 {} 检索返回结果数: {}", embeddingModelId, searchResults.size());
 

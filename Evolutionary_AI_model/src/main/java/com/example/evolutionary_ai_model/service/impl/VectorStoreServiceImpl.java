@@ -136,19 +136,45 @@ public class VectorStoreServiceImpl implements VectorStoreService {
 
     @Override
     public List<Document> similaritySearch(String query, Long embeddingModelId, int topK) {
+        return similaritySearch(query, embeddingModelId, topK, null);
+    }
+
+    @Override
+    public List<Document> similaritySearch(String query, Long embeddingModelId, int topK, List<Long> documentIds) {
         try {
             VectorStore vectorStore = getOrCreateVectorStore(embeddingModelId);
 
-            logger.info("开始相似度搜索，查询: {}, 向量模型ID: {}, topK: {}",
-                    query.substring(0, Math.min(50, query.length())), embeddingModelId, topK);
+            logger.info("开始相似度搜索，查询: {}, 向量模型ID: {}, topK: {}, 文档ID过滤: {}",
+                    query.substring(0, Math.min(50, query.length())), embeddingModelId, topK,
+                    documentIds != null && !documentIds.isEmpty() ? documentIds : "无");
 
-            // 使用 SearchRequest.builder() 构建搜索请求
-            List<Document> results = vectorStore.similaritySearch(
+            // 构建搜索请求
+            org.springframework.ai.vectorstore.SearchRequest.Builder requestBuilder =
                 org.springframework.ai.vectorstore.SearchRequest.builder()
                     .query(query)
-                    .topK(topK)
-                    .build()
-            );
+                    .topK(topK);
+
+            // 如果指定了文档ID列表，添加过滤条件
+            if (documentIds != null && !documentIds.isEmpty()) {
+                // 构建 documentId IN (id1, id2, ...) 的过滤表达式
+                // Spring AI 使用 Filter.Expression 进行过滤
+                List<String> docIdStrings = documentIds.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.toList());
+
+                // 使用 IN 表达式过滤 documentId
+                org.springframework.ai.vectorstore.filter.Filter.Expression filterExpression =
+                    new org.springframework.ai.vectorstore.filter.Filter.Expression(
+                        org.springframework.ai.vectorstore.filter.Filter.ExpressionType.IN,
+                        new org.springframework.ai.vectorstore.filter.Filter.Key("documentId"),
+                        new org.springframework.ai.vectorstore.filter.Filter.Value(docIdStrings)
+                    );
+
+                requestBuilder.filterExpression(filterExpression);
+                logger.info("添加文档ID过滤条件: documentId IN {}", docIdStrings);
+            }
+
+            List<Document> results = vectorStore.similaritySearch(requestBuilder.build());
 
             logger.info("相似度搜索完成，查询: {}, 返回结果数: {}", query, results.size());
 

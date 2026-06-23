@@ -180,6 +180,11 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
             updateById(document);
 
             logger.info("文档流式处理完成，文档ID: {}, 总分块数: {}", documentId, processedChunks);
+
+            // 如果文档属于某个知识库，更新知识库的文档数和分块数统计
+            if (document.getKnowledgeBaseId() != null) {
+                knowledgeBaseService.updateStatistics(document.getKnowledgeBaseId());
+            }
         } catch (Exception e) {
             logger.error("文档处理失败，文档ID: {}", documentId, e);
             document.setStatus("FAILED");
@@ -267,6 +272,11 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
 
             // 4. 删除文档记录
             removeById(documentId);
+
+            // 如果文档属于某个知识库，更新知识库统计信息
+            if (document.getKnowledgeBaseId() != null) {
+                knowledgeBaseService.updateStatistics(document.getKnowledgeBaseId());
+            }
 
             logger.info("文档删除成功，文档ID: {}", documentId);
         } catch (Exception e) {

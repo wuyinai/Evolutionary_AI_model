@@ -54,7 +54,7 @@ export const useSkillStore = defineStore('skill', () => {
   }
   
   // 获取技能详情
-  const loadSkillDetail = async (skillId: number) => {
+  const loadSkillDetail = async (skillId: string) => {
     loading.value = true
     try {
       const response = await getSkillDetail(skillId)
@@ -71,7 +71,7 @@ export const useSkillStore = defineStore('skill', () => {
   }
   
   // 更新技能状态
-  const toggleSkillStatus = async (skillId: number, enabled: boolean) => {
+  const toggleSkillStatus = async (skillId: string, enabled: boolean) => {
     try {
       const response = await updateSkillStatus(skillId, enabled)
       if (response.code === 200) {
@@ -89,7 +89,7 @@ export const useSkillStore = defineStore('skill', () => {
   }
   
   // 删除技能
-  const removeSkill = async (skillId: number) => {
+  const removeSkill = async (skillId: string) => {
     try {
       const response = await deleteSkill(skillId)
       if (response.code === 200) {

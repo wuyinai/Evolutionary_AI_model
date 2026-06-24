@@ -28,14 +28,14 @@ export const getSkillList = (): Promise<ApiResponse<UserSkill[]>> => {
 /**
  * 获取技能详情
  */
-export const getSkillDetail = (skillId: number): Promise<ApiResponse<UserSkill>> => {
+export const getSkillDetail = (skillId: string): Promise<ApiResponse<UserSkill>> => {
   return request.get(`/skills/${skillId}`)
 }
 
 /**
  * 更新技能状态（启用/禁用）
  */
-export const updateSkillStatus = (skillId: number, enabled: boolean): Promise<ApiResponse<void>> => {
+export const updateSkillStatus = (skillId: string, enabled: boolean): Promise<ApiResponse<void>> => {
   return request.put(`/skills/${skillId}/status`, null, {
     params: { enabled }
   })
@@ -44,6 +44,6 @@ export const updateSkillStatus = (skillId: number, enabled: boolean): Promise<Ap
 /**
  * 删除技能
  */
-export const deleteSkill = (skillId: number): Promise<ApiResponse<void>> => {
+export const deleteSkill = (skillId: string): Promise<ApiResponse<void>> => {
   return request.delete(`/skills/${skillId}`)
 }

@@ -247,7 +247,7 @@ const uploadSkillPackage = async (file: File) => {
 }
 
 // 切换技能状态
-const toggleSkillStatus = async (skillId: number, enabled: boolean) => {
+const toggleSkillStatus = async (skillId: string, enabled: boolean) => {
   try {
     await skillStore.toggleSkillStatus(skillId, enabled)
   } catch (error) {
@@ -257,7 +257,7 @@ const toggleSkillStatus = async (skillId: number, enabled: boolean) => {
 }
 
 // 删除技能
-const deleteSkill = async (skillId: number) => {
+const deleteSkill = async (skillId: string) => {
   if (!confirm('确定要删除该技能包吗？此操作不可恢复。')) {
     return
   }

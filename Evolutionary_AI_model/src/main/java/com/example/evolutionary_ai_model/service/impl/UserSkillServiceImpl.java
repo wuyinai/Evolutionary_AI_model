@@ -58,13 +58,15 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
             tempDir = Files.createTempDirectory("skill_upload_");
             unzipFile(file.getInputStream(), tempDir);
 
-            // 3. 查找并解析SKILL.md文件
-            Path skillMdPath = findSkillMdFile(tempDir);
-            if (skillMdPath == null) {
+            // 3. 查找技能包根目录（包含SKILL.md的目录）
+            Path skillRootDir = findSkillRootDir(tempDir);
+            if (skillRootDir == null) {
                 throw new BusinessException("技能包根目录必须包含SKILL.md文件");
             }
+            logger.info("找到技能包根目录: {}", skillRootDir);
 
             // 4. 解析SKILL.md的YAML头信息
+            Path skillMdPath = skillRootDir.resolve("SKILL.md");
             Map<String, String> skillMetadata = parseSkillMd(skillMdPath);
             skillName = skillMetadata.get("name");
 
@@ -94,10 +96,10 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
             // 将Map转换为JSON字符串
             userSkill.setMetadata(JSONUtil.toJsonStr(skillMetadata));
 
-            // 7. 上传文件到MinIO（使用skillId作为路径）
+            // 7. 上传文件到MinIO（路径: skills/{user_id}/{skill_id}/，保持原有目录结构）
             String basePath = "skills/" + userId + "/" + skillId;
             userSkill.setPath(basePath); // MinIO路径
-            uploadSkillFilesToMinio(tempDir, basePath);
+            uploadSkillFilesToMinio(skillRootDir, basePath);
 
             // 8. 保存到数据库
             save(userSkill);
@@ -219,12 +221,16 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
     }
 
     /**
-     * 查找SKILL.md文件（在根目录）
+     * 查找技能包根目录（包含SKILL.md的目录）
+     * 支持两种情况：
+     * 1. ZIP根目录直接包含SKILL.md
+     * 2. ZIP包含一层子目录，子目录中有SKILL.md
      */
-    private Path findSkillMdFile(Path dir) throws IOException {
+    private Path findSkillRootDir(Path dir) throws IOException {
+        // 检查根目录是否有SKILL.md
         Path skillMdPath = dir.resolve("SKILL.md");
         if (Files.exists(skillMdPath)) {
-            return skillMdPath;
+            return dir;
         }
 
         // 如果根目录没有，检查是否有子目录（ZIP可能包含一层目录）
@@ -233,7 +239,7 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
                 if (Files.isDirectory(subDir)) {
                     Path subSkillMd = subDir.resolve("SKILL.md");
                     if (Files.exists(subSkillMd)) {
-                        return subSkillMd;
+                        return subDir;
                     }
                 }
             }
@@ -276,33 +282,33 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
     }
 
     /**
-     * 上传技能文件到MinIO
+     * 上传技能文件到MinIO（保持原有目录结构）
      */
-    private void uploadSkillFilesToMinio(Path tempDir, String basePath) throws IOException {
-        logger.info("上传技能文件到MinIO，基础路径: {}", basePath);
+    private void uploadSkillFilesToMinio(Path skillRootDir, String basePath) throws IOException {
+        logger.info("上传技能文件到MinIO，基础路径: {}, 根目录: {}", basePath, skillRootDir);
 
-        // 遍历临时目录中的所有文件
-        Files.walk(tempDir)
+        // 遍历技能包根目录中的所有文件，保持原有目录结构
+        Files.walk(skillRootDir)
                 .filter(Files::isRegularFile)
                 .forEach(file -> {
                     try {
-                        // 计算相对路径
-                        String relativePath = tempDir.relativize(file).toString();
-                        // 替换特殊字符为下划线（MinIO不支持特殊字符）
-                        relativePath = sanitizeObjectName(relativePath);
+                        // 计算相对于技能包根目录的路径（保持目录结构）
+                        String relativePath = skillRootDir.relativize(file).toString();
+                        // Windows路径使用反斜杠，转换为正斜杠（MinIO/Unix路径）
+                        relativePath = relativePath.replace('\\', '/');
+                        // 对路径中的每个部分进行特殊字符处理（保留目录分隔符）
+                        relativePath = sanitizePath(relativePath);
                         // 构建MinIO对象名称
                         String objectName = basePath + "/" + relativePath;
 
                         // 上传文件到MinIO
                         InputStream inputStream = Files.newInputStream(file);
                         long fileSize = Files.size(file);
-                        String contentType = Files.probeContentType(file);
-                        if (contentType == null) {
-                            contentType = "application/octet-stream";
-                        }
+                        // 根据文件扩展名获取contentType（更可靠的方式）
+                        String contentType = getContentTypeByExtension(file.getFileName().toString());
 
                         minioService.uploadFile(inputStream, objectName, contentType, fileSize);
-                        logger.info("上传文件成功: {}", objectName);
+                        logger.info("上传文件成功: {}, contentType: {}", objectName, contentType);
 
                     } catch (Exception e) {
                         logger.error("上传文件失败: {}", file, e);
@@ -314,13 +320,55 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
     }
 
     /**
-     * 清理对象名称中的特殊字符（MinIO不支持特殊字符）
-     * 将特殊字符替换为下划线
+     * 清理路径中的特殊字符（保留目录分隔符/）
+     * 对每个路径部分单独处理，保持目录结构
      */
-    private String sanitizeObjectName(String objectName) {
-        // MinIO不支持的特殊字符：空格、连字符、中文等
-        // 替换为下划线
-        return objectName.replaceAll("[^a-zA-Z0-9._/-]", "_");
+    private String sanitizePath(String path) {
+        // 分割路径，对每个部分单独处理
+        String[] parts = path.split("/");
+        StringBuilder result = new StringBuilder();
+        
+        for (int i = 0; i < parts.length; i++) {
+            // 对每个路径部分进行特殊字符替换（保留字母、数字、点、下划线、连字符）
+            String sanitized = parts[i].replaceAll("[^a-zA-Z0-9._-]", "_");
+            result.append(sanitized);
+            if (i < parts.length - 1) {
+                result.append("/");
+            }
+        }
+        
+        return result.toString();
+    }
+
+    /**
+     * 根据文件扩展名获取ContentType
+     * Files.probeContentType()在某些系统上不可靠，手动映射更稳定
+     */
+    private String getContentTypeByExtension(String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        
+        return switch (extension) {
+            case "md" -> "text/markdown";
+            case "txt" -> "text/plain";
+            case "json" -> "application/json";
+            case "yaml", "yml" -> "application/x-yaml";
+            case "py" -> "text/x-python";
+            case "js" -> "application/javascript";
+            case "ts" -> "application/typescript";
+            case "html" -> "text/html";
+            case "css" -> "text/css";
+            case "xml" -> "application/xml";
+            case "pdf" -> "application/pdf";
+            case "png" -> "image/png";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "gif" -> "image/gif";
+            case "svg" -> "image/svg+xml";
+            case "zip" -> "application/zip";
+            case "csv" -> "text/csv";
+            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            default -> "application/octet-stream";
+        };
     }
 
     /**

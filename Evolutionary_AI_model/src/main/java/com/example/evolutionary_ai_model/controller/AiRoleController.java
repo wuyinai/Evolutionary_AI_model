@@ -126,6 +126,35 @@ public class AiRoleController {
     }
 
     /**
+     * 更新角色状态（启用/禁用）
+     * 请求地址: PUT /ai-role/{roleId}/status
+     */
+    @PutMapping("/{roleId}/status")
+    public Result<Void> updateRoleStatus(@PathVariable Long roleId,
+                                         @RequestParam Integer status) {
+        logger.info("更新角色状态请求，ID: {}, 新状态: {}", roleId, status);
+
+        try {
+            // 验证状态值
+            if (status != 0 && status != 1) {
+                return Result.fail("状态值必须为0(禁用)或1(启用)");
+            }
+
+            // 构建更新对象
+            AiRole aiRole = new AiRole();
+            aiRole.setId(roleId);
+            aiRole.setStatus(status);
+
+            aiRoleService.updateRole(aiRole);
+            logger.info("角色状态更新成功，ID: {}, 状态: {}", roleId, status);
+            return Result.success();
+        } catch (Exception e) {
+            logger.error("更新角色状态失败", e);
+            return Result.fail("更新角色状态失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 上传文档到角色
      * 请求地址: POST /ai-role/{roleId}/document
      */

@@ -247,6 +247,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
 import request from '@/utils/request'
 import type { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge'
+import { useToast } from '@/composables/useToast'
 
 interface AiModelConfig {
   id: string
@@ -256,6 +257,7 @@ interface AiModelConfig {
 }
 
 const knowledgeStore = useKnowledgeStore()
+const toast = useToast()
 
 const knowledgeBases = computed(() => knowledgeStore.knowledgeBases)
 const documents = computed(() => knowledgeStore.currentDocuments)
@@ -339,18 +341,18 @@ const submitKBForm = async () => {
         description: kbForm.value.description,
         embeddingModelId: kbForm.value.embeddingModelId
       })
-      alert('知识库更新成功')
+      toast.showSuccess('知识库更新成功')
     } else {
       await knowledgeStore.createKB({
         name: kbForm.value.name,
         description: kbForm.value.description,
         embeddingModelId: kbForm.value.embeddingModelId
       })
-      alert('知识库创建成功')
+      toast.showSuccess('知识库创建成功')
     }
     closeKBModal()
   } catch (error) {
-    alert(isEditing.value ? '知识库更新失败' : '知识库创建失败')
+    toast.showError(isEditing.value ? '知识库更新失败' : '知识库创建失败')
   } finally {
     submitting.value = false
   }
@@ -367,9 +369,9 @@ const deleteKnowledgeBase = async (id: string) => {
     if (selectedKB.value?.id === id) {
       selectedKB.value = null
     }
-    alert('知识库删除成功')
+    toast.showSuccess('知识库删除成功')
   } catch (error) {
-    alert('知识库删除失败')
+    toast.showError('知识库删除失败')
   }
 }
 
@@ -427,14 +429,14 @@ const uploadDocument = async () => {
       uploadTargetKB.value.id,
       uploadEmbeddingModelId.value || undefined
     )
-    alert('文档上传成功')
+    toast.showSuccess('文档上传成功')
     closeUploadModal()
     // 刷新文档列表
     if (selectedKB.value?.id === uploadTargetKB.value.id) {
       await knowledgeStore.loadKnowledgeBaseDocuments(uploadTargetKB.value.id)
     }
   } catch (error) {
-    alert('文档上传失败')
+    toast.showError('文档上传失败')
   } finally {
     uploading.value = false
   }
@@ -448,9 +450,9 @@ const deleteDocument = async (documentId: string, knowledgeBaseId: string) => {
 
   try {
     await knowledgeStore.removeDocument(documentId, knowledgeBaseId)
-    alert('文档删除成功')
+    toast.showSuccess('文档删除成功')
   } catch (error) {
-    alert('文档删除失败')
+    toast.showError('文档删除失败')
   }
 }
 

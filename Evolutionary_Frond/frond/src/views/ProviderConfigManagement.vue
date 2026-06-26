@@ -311,11 +311,13 @@
 import { ref, onMounted } from 'vue'
 import { useProviderConfigStore } from '@/stores/providerConfig'
 import { useModelConfigStore } from '@/stores/modelConfig'
+import { useToast } from '@/composables/useToast'
 import type { AiProviderConfigVO, AiProviderConfigAddDTO, AiProviderConfigUpdateDTO, ProtocolType } from '@/types/providerConfig'
 import { PROTOCOL_CONFIG_TIPS } from '@/types/providerConfig'
 
 const providerConfigStore = useProviderConfigStore()
 const modelConfigStore = useModelConfigStore()
+const toast = useToast()
 
 // Modal state
 const showModal = ref(false)
@@ -444,13 +446,13 @@ const handleSubmit = async () => {
 
   // Validation
   if (!form.value.providerCode || !form.value.configName || !form.value.protocolType) {
-    alert('请填写所有必填字段')
+    toast.showWarning('请填写所有必填字段')
     return
   }
 
   // For new config, API key is required
   if (!isEditMode.value && !form.value.apiKey) {
-    alert('请输入API密钥')
+    toast.showWarning('请输入API密钥')
     return
   }
 
@@ -477,7 +479,7 @@ const handleSubmit = async () => {
       if (success) {
         closeModal()
       } else {
-        alert('更新失败，请稍后重试')
+        toast.showError('更新失败，请稍后重试')
       }
     } else {
       // Add new config
@@ -485,12 +487,12 @@ const handleSubmit = async () => {
       if (success) {
         closeModal()
       } else {
-        alert('添加失败，请稍后重试')
+        toast.showError('添加失败，请稍后重试')
       }
     }
   } catch (error) {
     console.error('提交失败:', error)
-    alert('操作失败，请检查网络连接')
+    toast.showError('操作失败，请检查网络连接')
   } finally {
     isSubmitting.value = false
   }
@@ -505,11 +507,11 @@ const handleDelete = async (configId: string) => {
   try {
     const success = await providerConfigStore.deleteConfig(configId)
     if (!success) {
-      alert('删除失败，请稍后重试')
+      toast.showError('删除失败，请稍后重试')
     }
   } catch (error) {
     console.error('删除失败:', error)
-    alert('删除失败，请检查网络连接')
+    toast.showError('删除失败，请检查网络连接')
   }
 }
 
@@ -518,11 +520,11 @@ const setDefaultConfig = async (configId: string) => {
   try {
     const success = await providerConfigStore.setDefault(configId)
     if (!success) {
-      alert('设置默认失败，请稍后重试')
+      toast.showError('设置默认失败，请稍后重试')
     }
   } catch (error) {
     console.error('设置默认失败:', error)
-    alert('设置默认失败，请检查网络连接')
+    toast.showError('设置默认失败，请检查网络连接')
   }
 }
 

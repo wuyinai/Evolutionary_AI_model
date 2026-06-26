@@ -19,7 +19,8 @@ import {
   deleteRoleDocument,
   getRoleDocuments,
   getDocumentDetail,
-  buildSystemPrompt
+  buildSystemPrompt,
+  toggleRoleStatus
 } from '@/utils/aiRoleApi'
 
 export const useAiRoleStore = defineStore('aiRole', () => {
@@ -219,6 +220,21 @@ export const useAiRoleStore = defineStore('aiRole', () => {
     }
   }
 
+  // 切换角色状态（启用/禁用）
+  const toggleStatus = async (roleId: string, status: number) => {
+    try {
+      const response = await toggleRoleStatus(roleId, status)
+      if (response.code === 200) {
+        // 刷新列表
+        await loadRoles()
+      }
+      return response
+    } catch (error) {
+      console.error('切换角色状态失败:', error)
+      throw error
+    }
+  }
+
   // 清空预览内容
   const clearPreview = () => {
     previewContent.value = null
@@ -247,6 +263,7 @@ export const useAiRoleStore = defineStore('aiRole', () => {
     deleteDocument,
     previewDoc,
     buildPrompt,
+    toggleStatus,
     clearPreview,
     clearBuiltPrompt
   }

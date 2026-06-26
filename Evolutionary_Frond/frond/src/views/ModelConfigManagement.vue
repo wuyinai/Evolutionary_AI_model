@@ -199,10 +199,12 @@ import { useModelConfigStore } from '@/stores/modelConfig'
 import { useProviderConfigStore } from '@/stores/providerConfig'
 import AddModelModal from '@/components/AddModelModal.vue'
 import type { AiModelConfigVO } from '@/types/modelConfig'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const modelConfigStore = useModelConfigStore()
 const providerConfigStore = useProviderConfigStore()
+const toast = useToast()
 
 // Modal state
 const showAddModal = ref(false)
@@ -248,11 +250,11 @@ const handleDelete = async (configId: string) => {
   try {
     const success = await modelConfigStore.deleteConfig(configId)
     if (!success) {
-      alert('删除失败，请稍后重试')
+      toast.showError('删除失败，请稍后重试')
     }
   } catch (error) {
     console.error('删除失败:', error)
-    alert('删除失败，请检查网络连接')
+    toast.showError('删除失败，请检查网络连接')
   }
 }
 
@@ -261,11 +263,11 @@ const setDefaultConfig = async (configId: string) => {
   try {
     const success = await modelConfigStore.setDefault(configId)
     if (!success) {
-      alert('设置默认失败，请稍后重试')
+      toast.showError('设置默认失败，请稍后重试')
     }
   } catch (error) {
     console.error('设置默认失败:', error)
-    alert('设置默认失败，请检查网络连接')
+    toast.showError('设置默认失败，请检查网络连接')
   }
 }
 

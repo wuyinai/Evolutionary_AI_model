@@ -149,9 +149,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useSkillStore } from '@/stores/skill'
+import { useToast } from '@/composables/useToast'
 import type { UserSkill } from '@/types/skill'
 
 const skillStore = useSkillStore()
+const toast = useToast()
 
 const skills = computed(() => skillStore.skills)
 const loading = computed(() => skillStore.loading)
@@ -181,14 +183,14 @@ const handleFileSelect = async (event: Event) => {
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
     if (!file.name.endsWith('.zip')) {
-      alert('只支持ZIP格式的技能包')
+      toast.showWarning('只支持ZIP格式的技能包')
       return
     }
-    
+
     // 校验文件名：不允许MinIO不支持的特殊字符
     const fileName = file.name.replace('.zip', '')
     if (!isValidFileName(fileName)) {
-      alert('文件名包含MinIO不支持的特殊字符（如空格、连字符、中文等），请使用字母、数字、下划线或连字符')
+      toast.showWarning('文件名包含MinIO不支持的特殊字符（如空格、连字符、中文等），请使用字母、数字、下划线或连字符')
       return
     }
     
@@ -206,14 +208,14 @@ const handleFileDrop = async (event: DragEvent) => {
   if (event.dataTransfer && event.dataTransfer.files.length > 0) {
     const file = event.dataTransfer.files[0]
     if (!file.name.endsWith('.zip')) {
-      alert('只支持ZIP格式的技能包')
+      toast.showWarning('只支持ZIP格式的技能包')
       return
     }
-    
+
     // 校验文件名：不允许MinIO不支持的特殊字符
     const fileName = file.name.replace('.zip', '')
     if (!isValidFileName(fileName)) {
-      alert('文件名包含MinIO不支持的特殊字符（如空格、连字符、中文等），请使用字母、数字、下划线或连字符')
+      toast.showWarning('文件名包含MinIO不支持的特殊字符（如空格、连字符、中文等），请使用字母、数字、下划线或连字符')
       return
     }
     
@@ -234,13 +236,13 @@ const uploadSkillPackage = async (file: File) => {
   try {
     const response = await skillStore.uploadSkillPackage(file)
     if (response.code === 200) {
-      alert('技能包上传成功')
+      toast.showSuccess('技能包上传成功')
     } else {
-      alert('技能包上传失败: ' + response.message)
+      toast.showError('技能包上传失败: ' + response.message)
     }
   } catch (error) {
     console.error('上传技能包失败:', error)
-    alert('上传技能包失败')
+    toast.showError('上传技能包失败')
   } finally {
     uploading.value = false
   }
@@ -252,7 +254,7 @@ const toggleSkillStatus = async (skillId: string, enabled: boolean) => {
     await skillStore.toggleSkillStatus(skillId, enabled)
   } catch (error) {
     console.error('更新技能状态失败:', error)
-    alert('更新技能状态失败')
+    toast.showError('更新技能状态失败')
   }
 }
 
@@ -264,10 +266,10 @@ const deleteSkill = async (skillId: string) => {
 
   try {
     await skillStore.removeSkill(skillId)
-    alert('技能包删除成功')
+    toast.showSuccess('技能包删除成功')
   } catch (error) {
     console.error('删除技能失败:', error)
-    alert('删除技能失败')
+    toast.showError('删除技能失败')
   }
 }
 

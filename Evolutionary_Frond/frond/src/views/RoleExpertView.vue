@@ -66,7 +66,18 @@
             <div class="role-info">
               <h3 class="role-name">{{ role.roleName }}</h3>
               <div class="role-meta">
-                <span class="status-badge" :class="getStatusClass(role.status)">{{ getStatusText(role.status) }}</span>
+                <div class="status-toggle-wrapper">
+                  <label class="status-toggle">
+                    <input
+                      type="checkbox"
+                      :checked="role.status === 1"
+                      @change.stop="handleToggleStatus(role)"
+                      class="toggle-input"
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="status-label">{{ role.status === 1 ? '启用' : '禁用' }}</span>
+                </div>
                 <span class="doc-count">{{ role.documents?.length || 0 }} 个文档</span>
               </div>
             </div>
@@ -326,9 +337,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAiRoleStore } from '@/stores/aiRole'
+import { useToast } from '@/composables/useToast'
 import type { AiRole, CreateAiRoleDTO, UpdateAiRoleDTO } from '@/types/aiRole'
 
 const aiRoleStore = useAiRoleStore()
+const toast = useToast()
 
 // Modal状态
 const showRoleModal = ref(false)
@@ -459,12 +472,12 @@ const submitRoleForm = async () => {
 
 // 显示成功消息
 const showSuccessMessage = (message: string) => {
-  alert(message) // 可以替换为更优雅的toast组件
+  toast.showSuccess(message)
 }
 
 // 显示错误消息
 const showErrorMessage = (message: string) => {
-  alert(message) // 可以替换为更优雅的toast组件
+  toast.showError(message)
 }
 
 // 打开上传模态框
@@ -532,6 +545,30 @@ const uploadDocuments = async () => {
   } catch (error) {
     console.error('上传失败:', error)
     showErrorMessage('上传失败，请检查网络连接')
+  }
+}
+
+// 切换角色状态
+const handleToggleStatus = async (role: AiRole) => {
+  try {
+    // 计算新状态：如果当前是1(启用)，切换为0(禁用)；否则切换为1(启用)
+    const newStatus = role.status === 1 ? 0 : 1
+
+    const response = await aiRoleStore.toggleStatus(role.id, newStatus)
+
+    // 检查响应结果
+    if (response && response.code === 200) {
+      showSuccessMessage(newStatus === 1 ? '角色已启用' : '角色已禁用')
+    } else {
+      showErrorMessage(response?.message || '状态切换失败')
+      // 刷新列表以恢复原始状态
+      await aiRoleStore.loadRoles()
+    }
+  } catch (error) {
+    console.error('切换状态失败:', error)
+    showErrorMessage('切换状态失败，请检查网络连接')
+    // 刷新列表以恢复原始状态
+    await aiRoleStore.loadRoles()
   }
 }
 
@@ -900,6 +937,68 @@ const getDocStatusClass = (status: number | string): string => {
 .status-badge.inactive {
   background-color: #ffcdd2;
   color: #c62828;
+}
+
+/* 状态开关样式 */
+.status-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-input:checked + .toggle-slider {
+  background-color: #4caf50;
+}
+
+.toggle-input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.toggle-slider:hover {
+  box-shadow: 0 0 1px #2196f3;
+}
+
+.status-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .doc-count {

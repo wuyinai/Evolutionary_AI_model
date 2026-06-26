@@ -104,3 +104,12 @@ export const buildSystemPrompt = (roleId: string): Promise<ApiResponse<string>> 
 export const getRoleByCode = (roleCode: string): Promise<ApiResponse<AiRole>> => {
   return request.get(`/ai-role/code/${roleCode}`)
 }
+
+/**
+ * 更新角色状态（启用/禁用）
+ * @param roleId 角色ID
+ * @param status 状态值：0-禁用，1-启用
+ */
+export const toggleRoleStatus = (roleId: string, status: number): Promise<ApiResponse<void>> => {
+  return request.put(`/ai-role/${roleId}/status?status=${status}`)
+}

@@ -129,10 +129,40 @@ public class AiRoleServiceImpl extends ServiceImpl<AiRoleMapper, AiRole>
     public List<AiRole> getUserRoles(Long userId) {
         logger.info("获取用户角色列表，用户ID: {}", userId);
 
-        return lambdaQuery()
+        // 1. 查询用户的角色列表
+        List<AiRole> roles = lambdaQuery()
                 .eq(AiRole::getUserId, userId)
                 .orderByDesc(AiRole::getCreateTime)
                 .list();
+
+        if (roles == null || roles.isEmpty()) {
+            return roles;
+        }
+
+        // 2. 提取所有角色ID
+        List<Long> roleIds = roles.stream()
+                .map(AiRole::getId)
+                .collect(Collectors.toList());
+
+        // 3. 批量查询所有角色的文档
+        List<AiRoleDocument> allDocuments = documentMapper.selectList(
+                new LambdaQueryWrapper<AiRoleDocument>()
+                        .in(AiRoleDocument::getRoleId, roleIds)
+                        .orderByDesc(AiRoleDocument::getUploadTime)
+        );
+
+        // 4. 按角色ID分组文档
+        java.util.Map<Long, List<AiRoleDocument>> documentMap = allDocuments.stream()
+                .collect(java.util.stream.Collectors.groupingBy(AiRoleDocument::getRoleId));
+
+        // 5. 为每个角色设置文档列表
+        roles.forEach(role -> {
+            List<AiRoleDocument> documents = documentMap.get(role.getId());
+            role.setDocuments(documents != null ? documents : new java.util.ArrayList<>());
+        });
+
+        logger.info("获取用户角色列表成功，角色数量: {}, 文档总数: {}", roles.size(), allDocuments.size());
+        return roles;
     }
 
     @Override

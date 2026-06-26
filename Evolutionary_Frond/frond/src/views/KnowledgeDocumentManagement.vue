@@ -242,6 +242,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
+import { useToast } from '@/composables/useToast'
 
 interface KnowledgeDocument {
   id: string
@@ -276,6 +277,7 @@ const selectedEmbeddingModelId = ref('')
 const selectedDocument = ref<KnowledgeDocument | null>(null)
 const uploading = ref(false)
 const fileInput = ref<HTMLInputElement>()
+const toast = useToast()
 
 // 加载文档列表（仅独立文档，不属于任何知识库）
 const loadDocuments = async () => {
@@ -287,7 +289,7 @@ const loadDocuments = async () => {
     }
   } catch (error) {
     console.error('加载文档列表失败:', error)
-    alert('加载文档列表失败')
+    toast.showError('加载文档列表失败')
   } finally {
     loading.value = false
   }
@@ -364,15 +366,15 @@ const uploadDocument = async () => {
     })
 
     if (response.code === 200) {
-      alert('文档上传成功')
+      toast.showSuccess('文档上传成功')
       closeUploadModal()
       loadDocuments()
     } else {
-      alert('文档上传失败: ' + response.message)
+      toast.showError('文档上传失败: ' + response.message)
     }
   } catch (error) {
     console.error('文档上传失败:', error)
-    alert('文档上传失败')
+    toast.showError('文档上传失败')
   } finally {
     uploading.value = false
   }
@@ -388,7 +390,7 @@ const viewDocument = async (doc: KnowledgeDocument) => {
     }
   } catch (error) {
     console.error('获取文档详情失败:', error)
-    alert('获取文档详情失败')
+    toast.showError('获取文档详情失败')
   }
 }
 
@@ -407,14 +409,14 @@ const reprocessDocument = async (documentId: string) => {
   try {
     const response = await request.post(`/knowledge/document/reprocess/${documentId}`)
     if (response.code === 200) {
-      alert('文档重新处理成功')
+      toast.showSuccess('文档重新处理成功')
       loadDocuments()
     } else {
-      alert('文档重新处理失败: ' + response.message)
+      toast.showError('文档重新处理失败: ' + response.message)
     }
   } catch (error) {
     console.error('文档重新处理失败:', error)
-    alert('文档重新处理失败')
+    toast.showError('文档重新处理失败')
   }
 }
 
@@ -427,14 +429,14 @@ const deleteDocument = async (documentId: string) => {
   try {
     const response = await request.delete(`/knowledge/document/${documentId}`)
     if (response.code === 200) {
-      alert('文档删除成功')
+      toast.showSuccess('文档删除成功')
       loadDocuments()
     } else {
-      alert('文档删除失败: ' + response.message)
+      toast.showError('文档删除失败: ' + response.message)
     }
   } catch (error) {
     console.error('文档删除失败:', error)
-    alert('文档删除失败')
+    toast.showError('文档删除失败')
   }
 }
 

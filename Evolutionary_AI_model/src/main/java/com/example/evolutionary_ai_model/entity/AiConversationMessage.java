@@ -48,6 +48,10 @@ public class AiConversationMessage implements Serializable {
     // 父消息ID（用于消息树结构）
     private String parentMessageId;
 
+    // 模型配置ID，关联ai_model_config.id（记录该消息使用的模型）（序列化为String）
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long configId;
+
     // 关联的日志ID（序列化为String）
     @JsonSerialize(using = ToStringSerializer.class)
     private Long logId;

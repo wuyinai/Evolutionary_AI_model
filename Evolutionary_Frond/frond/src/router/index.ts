@@ -56,6 +56,12 @@ const router = createRouter({
           component: () => import('../views/SkillManagement.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'role-expert',
+          name: 'roleExpert',
+          component: () => import('../views/RoleExpertView.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     {

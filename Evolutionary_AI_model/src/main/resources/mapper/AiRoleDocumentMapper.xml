@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.evolutionary_ai_model.mapper.AiRoleDocumentMapper">
+
+    <!-- 根据角色ID删除所有关联文档 -->
+    <delete id="deleteByRoleId">
+        DELETE FROM ai_role_document
+        WHERE role_id = #{roleId}
+    </delete>
+
+</mapper>

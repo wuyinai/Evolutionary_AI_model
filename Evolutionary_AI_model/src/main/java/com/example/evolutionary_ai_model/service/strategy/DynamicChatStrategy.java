@@ -9,6 +9,7 @@ import com.example.evolutionary_ai_model.service.AiChatLogService;
 import com.example.evolutionary_ai_model.service.AiConversationService;
 import com.example.evolutionary_ai_model.service.AiModelConfigService;
 import com.example.evolutionary_ai_model.service.AiProviderConfigService;
+import com.example.evolutionary_ai_model.service.AiRoleService;
 import com.example.evolutionary_ai_model.service.RagService;
 import com.example.evolutionary_ai_model.service.factory.ProviderChatModelFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,6 +61,10 @@ public class DynamicChatStrategy {
     @Autowired
     private RagService ragService;
 
+    // AI角色服务
+    @Autowired
+    private AiRoleService aiRoleService;
+
     // JSON序列化工具
     @Autowired
     private ObjectMapper objectMapper;
@@ -82,6 +87,13 @@ public class DynamicChatStrategy {
 
             // 使用工厂创建ChatClient
             ChatClient chatClient = chatModelFactory.getOrCreateChatClient(providerConfig, modelConfig);
+
+            // 构建系统提示词（如果指定了roleId）
+            String systemPrompt = null;
+            if (request.getRoleId() != null) {
+                systemPrompt = aiRoleService.buildSystemPrompt(request.getRoleId());
+                logger.info("使用角色系统提示词，角色ID: {}, 提示词长度: {}", request.getRoleId(), systemPrompt.length());
+            }
 
             // 构建基础提示词
             String basePrompt = buildPrompt(request.getMessage(), request.getHistory());
@@ -159,6 +171,7 @@ public class DynamicChatStrategy {
 
             // 流式调用AI模型，并在流式响应过程中收集内容
             Flux<String> chatFlux = chatClient.prompt()
+                    .system(systemPrompt != null ? systemPrompt : "")
                     .user(prompt)
                     .stream()
                     .content()
@@ -330,6 +343,7 @@ public class DynamicChatStrategy {
             userMessage.setConversationId(conversationId);
             userMessage.setRole("USER");
             userMessage.setContent(request.getMessage());
+            userMessage.setConfigId(modelConfig.getId()); // 设置模型配置ID
 
             // 创建助手消息
             AiConversationMessage assistantMessage = new AiConversationMessage();
@@ -337,6 +351,7 @@ public class DynamicChatStrategy {
             assistantMessage.setRole("ASSISTANT");
             assistantMessage.setContent(responseContent);
             assistantMessage.setLogId(chatLog.getId());
+            assistantMessage.setConfigId(modelConfig.getId()); // 设置模型配置ID
             
             // 如果有文档块信息，序列化为JSON并设置到消息中
             if (documentChunks != null && !documentChunks.isEmpty()) {

@@ -95,8 +95,21 @@ export const useConversationStore = defineStore('conversation', () => {
 
   /**
    * 创建新对话（本地创建，等待发送第一条消息时后端会创建）
+   * 如果已存在未使用的"新对话"（没有消息的对话），则切换到该对话而不创建新的
    */
   const createConversation = (title: string = '新对话', pinnedConfigId?: string): Conversation => {
+    // 检查是否已存在未使用的"新对话"（没有消息的对话）
+    const existingEmptyConversation = conversations.value.find(
+      (conv) => conv.messages.length === 0 && conv.title === '新对话'
+    )
+
+    if (existingEmptyConversation) {
+      // 如果存在未使用的"新对话"，直接切换到该对话
+      currentConversation.value = existingEmptyConversation
+      return existingEmptyConversation
+    }
+
+    // 否则创建新的对话
     const newConversation: Conversation = {
       id: generateId(),
       title,

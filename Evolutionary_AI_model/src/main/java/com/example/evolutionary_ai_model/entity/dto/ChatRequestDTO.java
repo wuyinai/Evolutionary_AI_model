@@ -35,4 +35,7 @@ public class ChatRequestDTO {
 
     // RAG检索数量，默认返回最相关的3个文档片段
     private Integer ragTopK = 3;
+
+    // AI角色ID，用于加载角色系统提示词（可选）
+    private Long roleId;
 }

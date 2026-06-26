@@ -26,12 +26,10 @@ export interface AiRoleDocument {
   roleId: string
   documentName: string
   documentPath: string
+  documentType?: string
+  documentSize?: number
   documentContent?: string
-  fileSize: number
-  fileType: string
-  status: number | string // 后端可能返回0/1/2/3或字符串状态
-  createTime: string
-  updateTime: string
+  uploadTime?: string
   delFlag?: number
 }
 

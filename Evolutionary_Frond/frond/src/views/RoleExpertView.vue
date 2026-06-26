@@ -128,7 +128,7 @@
             <div class="document-list-mini">
               <div v-for="doc in aiRoleStore.currentDocuments" :key="doc.id" class="document-item-mini">
                 <span class="doc-name-mini">{{ doc.documentName }}</span>
-                <span class="status-badge-mini" :class="getDocStatusClass(doc.status)">{{ getDocStatusText(doc.status) }}</span>
+                <span class="doc-type-badge">{{ doc.documentType }}</span>
                 <button class="action-btn-mini" @click.stop="previewDoc(doc.id)" title="预览">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -1115,31 +1115,13 @@ const getDocStatusClass = (status: number | string): string => {
   white-space: nowrap;
 }
 
-.status-badge-mini {
+.doc-type-badge {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 500;
-}
-
-.status-badge-mini.pending {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
-.status-badge-mini.processing {
-  background-color: #cce5ff;
-  color: #004085;
-}
-
-.status-badge-mini.completed {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-badge-mini.failed {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #e8e8e8;
+  color: #666;
 }
 
 .action-btn-mini {

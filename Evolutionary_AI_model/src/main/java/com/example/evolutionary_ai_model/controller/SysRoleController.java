@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.RoleAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.RoleUpdateDTO;
@@ -27,6 +28,7 @@ public class SysRoleController {
     @PostMapping
     //需要 sys:role:add 权限才能访问
     @PreAuthorize("hasAuthority('sys:role:add')")
+    @OperationLog("添加角色")
     public Result<Void> addRole(@RequestBody @Validated RoleAddDTO roleAddDTO) {
         return sysRoleService.addRole(roleAddDTO);
     }
@@ -37,6 +39,7 @@ public class SysRoleController {
     @PutMapping
     //需要 sys:role:edit 权限才能访问
     @PreAuthorize("hasAuthority('sys:role:edit')")
+    @OperationLog("修改角色")
     public Result<Void> updateRole(@RequestBody @Validated RoleUpdateDTO roleUpdateDTO) {
         return sysRoleService.updateRole(roleUpdateDTO);
     }
@@ -47,6 +50,7 @@ public class SysRoleController {
     @DeleteMapping("/{roleId}")
     //需要 sys:role:delete 权限才能访问
     @PreAuthorize("hasAuthority('sys:role:delete')")
+    @OperationLog("删除角色")
     public Result<Void> deleteRole(@PathVariable Long roleId) {
         return sysRoleService.deleteRole(roleId);
     }

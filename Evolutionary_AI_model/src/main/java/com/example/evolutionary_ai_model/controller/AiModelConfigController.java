@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.AiModelConfigAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.AiModelConfigUpdateDTO;
@@ -158,6 +159,7 @@ public class AiModelConfigController {
      * 请求地址: PUT /ai/config/set-default/{id}
      */
     @PutMapping("/set-default/{id}")
+    @OperationLog("设置默认模型")
     public Result<Void> setDefault(@AuthenticationPrincipal UserDetails userDetails,
                                    @PathVariable Long id) {
         logger.info("设置默认模型请求，配置ID: {}", id);
@@ -181,6 +183,7 @@ public class AiModelConfigController {
      * 请求地址: POST /ai/config/test/{id}
      */
     @PostMapping("/test/{id}")
+    @OperationLog("测试模型连接")
     public Result<String> test(@PathVariable Long id) {
         logger.info("测试模型连接请求，配置ID: {}", id);
 

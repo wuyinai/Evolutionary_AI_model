@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.AiProviderConfig;
 import com.example.evolutionary_ai_model.entity.vo.AiProviderConfigVO;
@@ -61,6 +62,7 @@ public class AiProviderConfigController {
      * }
      */
     @PostMapping("/add")
+    @OperationLog("添加供应商配置")
     public Result<Long> add(@AuthenticationPrincipal UserDetails userDetails,
                            @RequestBody AiProviderConfig config) {
         logger.info("添加供应商配置请求，供应商编码: {}", config.getProviderCode());
@@ -130,6 +132,7 @@ public class AiProviderConfigController {
      * 请求地址: PUT /ai/provider-config/set-default/{id}
      */
     @PutMapping("/set-default/{id}")
+    @OperationLog("设置默认供应商配置")
     public Result<Void> setDefault(@AuthenticationPrincipal UserDetails userDetails,
                                    @PathVariable Long id) {
         logger.info("设置默认供应商配置请求，配置ID: {}", id);
@@ -153,6 +156,7 @@ public class AiProviderConfigController {
      * 请求地址: POST /ai/provider-config/test/{id}
      */
     @PostMapping("/test/{id}")
+    @OperationLog("测试供应商连接")
     public Result<String> test(@PathVariable Long id) {
         logger.info("测试供应商连接请求，配置ID: {}", id);
 

@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.DeptAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
@@ -37,6 +38,7 @@ public class SysDeptController {
     @PutMapping
     //需要 sys:dept:edit 权限才能访问
     @PreAuthorize("hasAuthority('sys:dept:edit')")
+    @OperationLog("修改部门")
     public Result<Void> updateDept(@RequestBody @Validated DeptUpdateDTO deptUpdateDTO) {
         return sysDeptService.updateDept(deptUpdateDTO);
     }
@@ -47,6 +49,7 @@ public class SysDeptController {
     @DeleteMapping("/{deptId}")
     //需要 sys:dept:delete 权限才能访问
     @PreAuthorize("hasAuthority('sys:dept:delete')")
+    @OperationLog("删除部门")
     public Result<Void> deleteDept(@PathVariable Long deptId) {
         return sysDeptService.deleteDept(deptId);
     }

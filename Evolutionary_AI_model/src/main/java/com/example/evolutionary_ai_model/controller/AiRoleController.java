@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.AiRole;
 import com.example.evolutionary_ai_model.entity.AiRoleDocument;
@@ -94,6 +95,7 @@ public class AiRoleController {
      * 测试数据: {"id": 1, "roleName": "律师助手-更新版", "description": "更新后的描述"}
      */
     @PutMapping
+    @OperationLog("更新AI角色")
     public Result<Void> updateRole(@RequestBody AiRole aiRole) {
         logger.info("更新AI角色请求，ID: {}", aiRole.getId());
 
@@ -178,6 +180,7 @@ public class AiRoleController {
      * 请求地址: DELETE /ai-role/document/{documentId}
      */
     @DeleteMapping("/document/{documentId}")
+    @OperationLog("删除角色文档")
     public Result<Void> deleteDocument(@PathVariable Long documentId) {
         logger.info("删除角色文档请求，文档ID: {}", documentId);
 

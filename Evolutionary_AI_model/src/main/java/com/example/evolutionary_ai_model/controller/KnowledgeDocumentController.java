@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
 import com.example.evolutionary_ai_model.service.KnowledgeDocumentService;
@@ -56,6 +57,7 @@ public class KnowledgeDocumentController {
      * 参数: file - 上传的文件, knowledgeBaseId - 知识库ID, embeddingModelId - 向量模型配置ID（可选）
      */
     @PostMapping("/upload-to-base")
+    @OperationLog("上传文档到知识库")
     public Result<Long> uploadDocumentToKnowledgeBase(@AuthenticationPrincipal UserDetails userDetails,
                                                        @RequestParam("file") MultipartFile file,
                                                        @RequestParam("knowledgeBaseId") Long knowledgeBaseId,
@@ -120,6 +122,7 @@ public class KnowledgeDocumentController {
      * 请求地址: DELETE /knowledge/document/{documentId}
      */
     @DeleteMapping("/{documentId}")
+    @OperationLog("删除文档")
     public Result<Void> deleteDocument(@AuthenticationPrincipal UserDetails userDetails,
                                         @PathVariable Long documentId) {
         logger.info("删除文档请求，文档ID: {}", documentId);

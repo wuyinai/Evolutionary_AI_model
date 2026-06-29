@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.vo.UserSkillVO;
 import com.example.evolutionary_ai_model.security.LoginUserDetails;
@@ -40,6 +41,7 @@ public class UserSkillController {
      */
     @Operation(summary = "上传技能包", description = "上传ZIP格式的技能包，自动解压并校验SKILL.md")
     @PostMapping("/upload")
+    @OperationLog("上传技能包")
     public Result<Long> uploadSkill(
             @AuthenticationPrincipal UserDetails userDetails,
             @Parameter(description = "ZIP文件") @RequestParam("file") MultipartFile file) {
@@ -106,6 +108,7 @@ public class UserSkillController {
      */
     @Operation(summary = "更新技能状态", description = "启用或禁用技能包")
     @PutMapping("/{skillId}/status")
+    @OperationLog("更新技能状态")
     public Result<Void> updateSkillStatus(
             @PathVariable Long skillId,
             @Parameter(description = "是否启用") @RequestParam Boolean enabled) {
@@ -128,6 +131,7 @@ public class UserSkillController {
      */
     @Operation(summary = "删除技能", description = "删除技能包及其文件")
     @DeleteMapping("/{skillId}")
+    @OperationLog("删除技能")
     public Result<Void> deleteSkill(@PathVariable Long skillId) {
         logger.info("删除技能请求，ID: {}", skillId);
 

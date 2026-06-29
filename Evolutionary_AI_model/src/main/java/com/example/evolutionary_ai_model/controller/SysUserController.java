@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.UserAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.UserUpdateDTO;
@@ -27,6 +28,7 @@ public class SysUserController {
     @PostMapping
     //需要 sys:user:add 权限才能访问
     @PreAuthorize("hasAuthority('sys:user:add')")
+    @OperationLog("添加用户")
     public Result<Void> addUser(@RequestBody @Validated UserAddDTO userAddDTO) {
         return sysUserService.addUser(userAddDTO);
     }
@@ -37,6 +39,7 @@ public class SysUserController {
     @PutMapping
     //需要 sys:user:edit 权限才能访问
     @PreAuthorize("hasAuthority('sys:user:edit')")
+    @OperationLog("修改用户")
     public Result<Void> updateUser(@RequestBody @Validated UserUpdateDTO userUpdateDTO) {
         return sysUserService.updateUser(userUpdateDTO);
     }
@@ -47,6 +50,7 @@ public class SysUserController {
     @DeleteMapping("/{userId}")
     //需要 sys:user:delete 权限才能访问
     @PreAuthorize("hasAuthority('sys:user:delete')")
+    @OperationLog("删除用户")
     public Result<Void> deleteUser(@PathVariable Long userId) {
         return sysUserService.deleteUser(userId);
     }

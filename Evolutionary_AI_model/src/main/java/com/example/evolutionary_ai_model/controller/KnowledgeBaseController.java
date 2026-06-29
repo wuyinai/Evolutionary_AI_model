@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.KnowledgeBase;
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
@@ -34,6 +35,7 @@ public class KnowledgeBaseController {
      * 请求地址: POST /knowledge/base
      */
     @PostMapping
+    @OperationLog("创建知识库")
     public Result<Long> createKnowledgeBase(@AuthenticationPrincipal UserDetails userDetails,
                                             @RequestBody KnowledgeBase knowledgeBase) {
         logger.info("创建知识库请求，名称: {}", knowledgeBase.getName());
@@ -94,6 +96,7 @@ public class KnowledgeBaseController {
      * 请求地址: PUT /knowledge/base
      */
     @PutMapping
+    @OperationLog("更新知识库")
     public Result<Void> updateKnowledgeBase(@RequestBody KnowledgeBase knowledgeBase) {
         logger.info("更新知识库请求，ID: {}", knowledgeBase.getId());
 
@@ -112,6 +115,7 @@ public class KnowledgeBaseController {
      * 请求地址: DELETE /knowledge/base/{knowledgeBaseId}
      */
     @DeleteMapping("/{knowledgeBaseId}")
+    @OperationLog("删除知识库")
     public Result<Void> deleteKnowledgeBase(@PathVariable Long knowledgeBaseId) {
         logger.info("删除知识库请求，ID: {}", knowledgeBaseId);
 

@@ -11,6 +11,8 @@ export const useConversationStore = defineStore('conversation', () => {
   const currentConversation = ref<Conversation | null>(null)
   const isLoadingConversations = ref(false) // 加载会话列表状态
   const isLoadingMessages = ref(false) // 加载消息历史状态
+  const selectedRoleId = ref<string | null>(null) // 当前选中的AI角色ID
+  const selectedRoleName = ref<string>('未选择角色') // 当前选中的AI角色名称
 
   /**
    * 从后端加载用户会话列表
@@ -276,6 +278,22 @@ export const useConversationStore = defineStore('conversation', () => {
   })
 
   /**
+   * 设置选中的AI角色
+   */
+  const setSelectedRole = (roleId: string | null, roleName: string) => {
+    selectedRoleId.value = roleId
+    selectedRoleName.value = roleName
+  }
+
+  /**
+   * 清除选中的AI角色（恢复默认）
+   */
+  const clearSelectedRole = () => {
+    selectedRoleId.value = null
+    selectedRoleName.value = '默认角色'
+  }
+
+  /**
    * 生成唯一 ID
    */
   const generateId = (): string => {
@@ -288,6 +306,8 @@ export const useConversationStore = defineStore('conversation', () => {
     groupedConversations,
     isLoadingConversations,
     isLoadingMessages,
+    selectedRoleId,
+    selectedRoleName,
     loadConversations,
     selectConversation,
     createConversation,
@@ -298,5 +318,7 @@ export const useConversationStore = defineStore('conversation', () => {
     unpinModel,
     getPinnedConfigId,
     updateTitle,
+    setSelectedRole,
+    clearSelectedRole,
   }
 })

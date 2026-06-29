@@ -231,6 +231,7 @@ const sendMessage = async () => {
         knowledgeDocumentIds: selectedKnowledgeIds.value.length > 0 ? selectedKnowledgeIds.value : undefined,
         knowledgeBaseIds: selectedKnowledgeBaseIds.value.length > 0 ? selectedKnowledgeBaseIds.value : undefined,
         ragTopK: 3,
+        roleId: conversationStore.selectedRoleId || undefined,
       },
       (chunk: string) => {
         accumulatedContent += chunk

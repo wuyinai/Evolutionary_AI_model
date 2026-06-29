@@ -53,6 +53,7 @@ export interface SendMessageRequest {
   knowledgeDocumentIds?: string[] // 文档挂载：选中文档的ID列表
   knowledgeBaseIds?: string[] // 知识库挂载：选中知识库的ID列表（检索知识库下所有文档的文档块）
   ragTopK?: number // RAG检索数量
+  roleId?: string // AI角色ID，用于加载角色系统提示词（可选）
 }
 
 // 会话管理API请求DTO

@@ -210,6 +210,7 @@ const sendMessage = async () => {
         message: userMessage,
         configId: configId || undefined,
         history,
+        roleId: conversationStore.selectedRoleId || undefined,
       },
       // onMessage: 每次收到新内容块
       (chunk: string) => {

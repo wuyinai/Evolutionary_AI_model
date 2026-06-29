@@ -5,6 +5,8 @@ import com.example.evolutionary_ai_model.entity.dto.DeptAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
 import com.example.evolutionary_ai_model.entity.SysDept;
 
+import java.util.List;
+
 /**
  * 用法：部门管理服务接口，定义部门的增删改查业务方法
  */
@@ -41,4 +43,11 @@ public interface SysDeptService {
      * @return 部门信息
      */
     Result<SysDept> getDeptById(Long deptId);
+
+    /**
+     * 查询所有部门列表（用于下拉选择）
+     *
+     * @return 部门列表
+     */
+    List<SysDept> listAllDepts();
 }

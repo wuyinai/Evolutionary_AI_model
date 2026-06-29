@@ -35,6 +35,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         List<SysPermission> permissions = sysPermissionMapper.selectPermissionsByUserId(sysUser.getId());
         List<String> permissionCodes = permissions.stream()
                 .map(SysPermission::getPermissionCode)
+                .filter(code -> code != null && !code.trim().isEmpty())
                 .collect(Collectors.toList());
         //封装成 UserDetails 返回
         return new LoginUserDetails(sysUser, permissionCodes);

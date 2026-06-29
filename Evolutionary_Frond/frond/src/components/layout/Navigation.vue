@@ -12,19 +12,62 @@
 
     <!-- 导航菜单 -->
     <nav class="navigation-menu">
-      <router-link
-        v-for="item in menuItems"
-        :key="item.path"
-        :to="item.path"
-        class="nav-item"
-        :class="{ active: isActive(item.path) }"
-        @click="closeMobileMenu"
-      >
-        <div class="nav-icon">
-          <component :is="item.icon" />
+      <template v-for="item in menuItems" :key="item.path">
+        <!-- 有子菜单的项 -->
+        <div v-if="item.children" class="nav-group">
+          <div
+            class="nav-item"
+            :class="{ active: isGroupActive(item) }"
+            @click="toggleGroup(item.path)"
+          >
+            <div class="nav-icon">
+              <component :is="item.icon" />
+            </div>
+            <span class="nav-label">{{ item.label }}</span>
+            <svg
+              class="expand-arrow"
+              :class="{ expanded: expandedGroups[item.path] }"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <!-- 子菜单 -->
+          <div v-if="expandedGroups[item.path]" class="nav-submenu">
+            <router-link
+              v-for="child in item.children"
+              :key="child.path"
+              :to="child.path"
+              class="nav-sub-item"
+              :class="{ active: isActive(child.path) }"
+              @click="closeMobileMenu"
+            >
+              <div class="nav-icon">
+                <component :is="child.icon" />
+              </div>
+              <span class="nav-label">{{ child.label }}</span>
+            </router-link>
+          </div>
         </div>
-        <span class="nav-label">{{ item.label }}</span>
-      </router-link>
+        <!-- 无子菜单的项 -->
+        <router-link
+          v-else
+          :to="item.path"
+          class="nav-item"
+          :class="{ active: isActive(item.path) }"
+          @click="closeMobileMenu"
+        >
+          <div class="nav-icon">
+            <component :is="item.icon" />
+          </div>
+          <span class="nav-label">{{ item.label }}</span>
+        </router-link>
+      </template>
     </nav>
 
     <!-- 用户信息区域 -->
@@ -69,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, h } from 'vue'
+import { computed, ref, h, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
@@ -78,6 +121,7 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const isMobileMenuOpen = ref(false)
+const expandedGroups = reactive<Record<string, boolean>>({})
 
 // 用户信息
 const userName = computed(() => userStore.userInfo?.username || '用户')
@@ -166,13 +210,35 @@ const menuItems = [
     ])
   },
   {
-    path: '/reserved-3',
-    label: '预留3',
+    path: '/system',
+    label: '系统管理',
     icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
-      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
-      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
-    ])
+      h('circle', { cx: 12, cy: 12, r: 3 }),
+      h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })
+    ]),
+    children: [
+      {
+        path: '/system/role',
+        label: '角色管理',
+        icon: h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+          h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
+          h('circle', { cx: 9, cy: 7, r: 4 }),
+          h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }),
+          h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })
+        ])
+      },
+      {
+        path: '/system/operation-log',
+        label: '操作日志',
+        icon: h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
+          h('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
+          h('polyline', { points: '14 2 14 8 20 8' }),
+          h('line', { x1: 16, y1: 13, x2: 8, y2: 13 }),
+          h('line', { x1: 16, y1: 17, x2: 8, y2: 17 }),
+          h('polyline', { points: '10 9 9 9 8 9' })
+        ])
+      }
+    ]
   },
   {
     path: '/reserved-4',
@@ -188,6 +254,19 @@ const menuItems = [
 // 判断当前路由是否激活
 const isActive = (path: string) => {
   return route.path === path || route.path.startsWith(path + '/')
+}
+
+// 判断分组是否激活（子菜单中有激活项）
+const isGroupActive = (item: any) => {
+  if (item.children) {
+    return item.children.some((child: any) => isActive(child.path))
+  }
+  return isActive(item.path)
+}
+
+// 切换分组展开/折叠
+const toggleGroup = (path: string) => {
+  expandedGroups[path] = !expandedGroups[path]
 }
 
 // 切换移动端菜单
@@ -286,6 +365,51 @@ const handleLogout = () => {
 .nav-label {
   font-size: 15px;
   font-weight: 500;
+}
+
+.expand-arrow {
+  margin-left: auto;
+  transition: transform 0.2s ease-out;
+  color: var(--color-text-tertiary);
+}
+
+.expand-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+/* 导航分组 */
+.nav-group {
+  margin-bottom: 4px;
+}
+
+/* 子菜单 */
+.nav-submenu {
+  margin-left: 12px;
+  margin-top: 4px;
+}
+
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav-sub-item:hover {
+  background-color: var(--color-background-soft);
+  color: var(--color-text);
+}
+
+.nav-sub-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 /* 用户信息区域 */

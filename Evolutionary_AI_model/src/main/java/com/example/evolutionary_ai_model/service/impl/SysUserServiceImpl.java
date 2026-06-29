@@ -1,5 +1,7 @@
 package com.example.evolutionary_ai_model.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.UserAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.UserUpdateDTO;
@@ -115,5 +117,24 @@ public class SysUserServiceImpl implements SysUserService {
         sysUser.setPassword(null);
 
         return Result.success(sysUser);
+    }
+
+    @Override
+    public Page<SysUser> listUsers(Integer page, Integer size, Long deptId) {
+        //构建分页对象
+        Page<SysUser> pageObj = new Page<>(page != null ? page : 1, size != null ? size : 10);
+
+        //构建查询条件
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(deptId != null, SysUser::getDeptId, deptId);
+        wrapper.orderByDesc(SysUser::getCreateTime);
+
+        //执行分页查询
+        Page<SysUser> result = sysUserMapper.selectPage(pageObj, wrapper);
+
+        //脱敏：清空密码字段
+        result.getRecords().forEach(user -> user.setPassword(null));
+
+        return result;
     }
 }

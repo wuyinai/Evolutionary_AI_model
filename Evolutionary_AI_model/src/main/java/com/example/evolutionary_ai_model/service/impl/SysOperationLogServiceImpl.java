@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 用法：操作日志服务实现类，提供操作日志的异步保存和查询功能。
  * 异步保存避免影响主业务流程的性能。
@@ -41,5 +43,29 @@ public class SysOperationLogServiceImpl implements SysOperationLogService {
         queryWrapper.orderByDesc("id");
         Page<SysOperationLog> result = sysOperationLogMapper.selectPage(page, queryWrapper);
         return Result.success(result);
+    }
+
+    @Override
+    public void deleteLog(Long id) {
+        sysOperationLogMapper.deleteById(id);
+        log.info("删除操作日志成功，id: {}", id);
+    }
+
+    @Override
+    public void deleteLogs(List<Long> ids) {
+        sysOperationLogMapper.deleteBatchIds(ids);
+        log.info("批量删除操作日志成功，数量: {}", ids.size());
+    }
+
+    @Override
+    public void clearLogs() {
+        QueryWrapper<SysOperationLog> queryWrapper = new QueryWrapper<>();
+        sysOperationLogMapper.delete(queryWrapper);
+        log.info("清空所有操作日志成功");
+    }
+
+    @Override
+    public SysOperationLog getLogById(Long id) {
+        return sysOperationLogMapper.selectById(id);
     }
 }

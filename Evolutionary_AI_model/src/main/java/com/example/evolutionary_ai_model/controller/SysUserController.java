@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.UserAddDTO;
@@ -21,6 +22,19 @@ public class SysUserController {
 
     //用户管理服务，处理用户增删改查业务逻辑
     private final SysUserService sysUserService;
+
+    /**
+     * 分页查询用户列表（支持部门筛选）
+     * 用于角色分配用户功能，不做权限限制
+     */
+    @GetMapping("/list")
+    @PreAuthorize("hasAuthority('sys:user:list')")
+    public Result<Page<SysUser>> listUsers(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Long deptId) {
+        return Result.success(sysUserService.listUsers(page, size, deptId));
+    }
 
     /**
      * 添加用户

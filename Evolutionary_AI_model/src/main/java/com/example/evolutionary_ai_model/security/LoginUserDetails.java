@@ -31,6 +31,7 @@ public class LoginUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return permissionCodes.stream()
+                .filter(code -> code != null && !code.trim().isEmpty())
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toSet());
     }

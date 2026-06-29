@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 用法：部门管理服务实现类，处理部门的增删改查业务逻辑
  */
@@ -163,5 +165,14 @@ public class SysDeptServiceImpl implements SysDeptService {
             return Result.fail("部门不存在");
         }
         return Result.success(sysDept);
+    }
+
+    @Override
+    public List<SysDept> listAllDepts() {
+        //查询所有启用状态的部门，按排序字段升序排列
+        LambdaQueryWrapper<SysDept> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysDept::getStatus, 1);
+        wrapper.orderByAsc(SysDept::getSort);
+        return sysDeptMapper.selectList(wrapper);
     }
 }

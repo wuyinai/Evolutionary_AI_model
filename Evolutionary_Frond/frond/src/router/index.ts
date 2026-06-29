@@ -62,6 +62,18 @@ const router = createRouter({
           component: () => import('../views/RoleExpertView.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'system/role',
+          name: 'sysRole',
+          component: () => import('../views/SysRoleView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'system/operation-log',
+          name: 'operationLog',
+          component: () => import('../views/OperationLogView.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     {

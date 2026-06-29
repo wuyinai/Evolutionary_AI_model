@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.UserAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.UserUpdateDTO;
@@ -41,4 +42,14 @@ public interface SysUserService {
      * @return 用户信息（脱敏）
      */
     Result<SysUser> getUserById(Long userId);
+
+    /**
+     * 分页查询用户列表（支持部门筛选）
+     *
+     * @param page   页码
+     * @param size   每页大小
+     * @param deptId 部门ID（可选）
+     * @return 用户分页数据
+     */
+    Page<SysUser> listUsers(Integer page, Integer size, Long deptId);
 }

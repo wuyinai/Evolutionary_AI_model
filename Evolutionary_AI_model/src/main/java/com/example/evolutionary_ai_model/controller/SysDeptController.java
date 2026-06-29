@@ -11,6 +11,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * 用法：部门管理控制器，提供部门的增删改查REST接口，需要相应权限才能访问
  */
@@ -21,6 +23,15 @@ public class SysDeptController {
 
     //部门管理服务，处理部门增删改查业务逻辑
     private final SysDeptService sysDeptService;
+
+    /**
+     * 查询所有部门列表（用于下拉选择）
+     * 用于角色分配用户功能，不做权限限制
+     */
+    @GetMapping("/list")
+    public Result<List<SysDept>> listDepts() {
+        return Result.success(sysDeptService.listAllDepts());
+    }
 
     /**
      * 添加部门

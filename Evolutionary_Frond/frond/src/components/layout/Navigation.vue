@@ -72,24 +72,62 @@
 
     <!-- 用户信息区域 -->
     <div class="navigation-footer">
-      <div class="user-profile">
-        <div class="user-avatar">
+      <div class="user-profile" @click="toggleUserDropdown">
+        <div class="user-avatar" :class="{ 'dropdown-active': showUserDropdown }">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
         </div>
         <div class="user-info">
-          <div class="user-name">{{ userName }}</div>
+          <div class="user-name">{{ userName || '加载中...' }}</div>
           <div class="user-email">{{ userEmail }}</div>
         </div>
-        <button class="logout-btn" @click="handleLogout" title="退出登录">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="dropdown-indicator" :class="{ 'rotated': showUserDropdown }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <!-- 用户下拉菜单 -->
+      <div v-if="showUserDropdown" class="user-dropdown-menu">
+        <div class="dropdown-item" @click="goToProfile">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>个人主页</span>
+        </div>
+        <div class="dropdown-item" @click="handleReserved1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>个人预留1</span>
+        </div>
+        <div class="dropdown-item" @click="handleReserved2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span>个人预留2</span>
+        </div>
+        <div class="dropdown-item" @click="handleReserved3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="9"></line>
+          </svg>
+          <span>个人预留3</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item logout-item" @click="handleLogout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-        </button>
+          <span>退出登录</span>
+        </div>
       </div>
     </div>
 
@@ -117,6 +155,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getUserMenuTree, type SysPermission } from '@/utils/sysPermissionApi'
 import FeatherIcon from '@/components/FeatherIcon.vue'
+import { get } from '@/utils/request'
 
 const router = useRouter()
 const route = useRoute()
@@ -124,10 +163,55 @@ const userStore = useUserStore()
 
 const isMobileMenuOpen = ref(false)
 const expandedGroups = reactive<Record<string, boolean>>({})
+const showUserDropdown = ref(false)
 
 // 用户信息
-const userName = computed(() => userStore.userInfo?.username || '用户')
-const userEmail = computed(() => userStore.userInfo?.email || 'user@example.com')
+const userName = computed(() => userStore.userInfo?.username || userInfoCache.value?.username || '')
+// 备用：从 /profile/user-info 加载的完整用户信息
+const userInfoCache = ref<{ username?: string; email?: string } | null>(null)
+const userEmail = computed(() => userStore.userInfo?.email || userInfoCache.value?.email || '')
+
+const loadCurrentUser = async () => {
+  if (userStore.userInfo?.username) return
+  try {
+    const response = await get<any>('/profile/user-info')
+    if (response.code === 200 && response.data) {
+      userInfoCache.value = response.data
+    }
+  } catch (error) {
+    console.error('加载当前用户信息失败:', error)
+  }
+}
+
+// 切换用户下拉菜单
+const toggleUserDropdown = () => {
+  showUserDropdown.value = !showUserDropdown.value
+}
+
+// 导航到个人主页
+const goToProfile = () => {
+  showUserDropdown.value = false
+  router.push('/profile')
+}
+
+// 预留功能处理
+const handleReserved1 = () => {
+  showUserDropdown.value = false
+  // TODO: 实现预留功能1
+  console.log('预留功能1')
+}
+
+const handleReserved2 = () => {
+  showUserDropdown.value = false
+  // TODO: 实现预留功能2
+  console.log('预留功能2')
+}
+
+const handleReserved3 = () => {
+  showUserDropdown.value = false
+  // TODO: 实现预留功能3
+  console.log('预留功能3')
+}
 
 // 构建树形菜单：将后端返回的扁平列表转为树形结构
 function buildMenuTree(permissions: SysPermission[]): SysPermission[] {
@@ -179,6 +263,7 @@ async function loadMenus() {
 
 onMounted(() => {
   loadMenus()
+  loadCurrentUser()
 })
 
 // 判断当前路由是否激活
@@ -213,9 +298,22 @@ const closeMobileMenu = () => {
 
 // 退出登录
 const handleLogout = () => {
+  showUserDropdown.value = false
   userStore.logout()
   router.push('/login')
 }
+
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.navigation-footer')) {
+    showUserDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
@@ -348,12 +446,23 @@ const handleLogout = () => {
 .navigation-footer {
   padding: 20px;
   border-top: 1px solid var(--color-border);
+  position: relative;
 }
 
 .user-profile {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  position: relative;
+}
+
+.user-profile:hover {
+  background-color: var(--color-background-soft);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  margin: -8px;
 }
 
 .user-avatar {
@@ -366,6 +475,13 @@ const handleLogout = () => {
   justify-content: center;
   color: var(--color-text-secondary);
   border: 2px solid var(--color-border);
+  transition: all 0.2s ease-out;
+}
+
+.user-avatar.dropdown-active {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .user-info {
@@ -390,6 +506,15 @@ const handleLogout = () => {
   white-space: nowrap;
 }
 
+.dropdown-indicator {
+  color: var(--color-text-tertiary);
+  transition: transform 0.2s ease-out;
+}
+
+.dropdown-indicator.rotated {
+  transform: rotate(180deg);
+}
+
 .logout-btn {
   padding: 8px;
   border-radius: var(--radius-sm);
@@ -401,6 +526,74 @@ const handleLogout = () => {
 .logout-btn:hover {
   background-color: var(--color-background-soft);
   color: var(--color-text);
+}
+
+/* 用户下拉菜单 */
+.user-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-background-soft);
+}
+
+.dropdown-item:first-child {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.dropdown-item svg {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 4px 0;
+}
+
+.logout-item {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  color: var(--color-error);
+}
+
+.logout-item:hover {
+  background-color: #fee;
+}
+
+.logout-item svg {
+  color: var(--color-error);
 }
 
 /* 移动端折叠按钮 */

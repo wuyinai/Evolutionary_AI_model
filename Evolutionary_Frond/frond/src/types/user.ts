@@ -4,9 +4,14 @@ export interface User {
   userId: number
   username: string
   email: string
+  realName?: string
+  phone?: string
   avatar?: string
+  gender?: number
+  status?: number
   createTime: string
   updateTime: string
+  lastLoginTime?: string
 }
 
 export interface LoginForm {

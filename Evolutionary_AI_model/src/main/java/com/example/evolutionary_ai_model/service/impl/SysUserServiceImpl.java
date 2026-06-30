@@ -54,10 +54,10 @@ public class SysUserServiceImpl implements SysUserService {
         sysUserMapper.insert(sysUser);
 
         //分配默认角色（角色ID=1，即普通用户角色）
-        SysUserRole sysUserRole = new SysUserRole();
-        sysUserRole.setUserId(sysUser.getId());
-        sysUserRole.setRoleId(1L);
-        sysUserRoleMapper.insert(sysUserRole);
+//        SysUserRole sysUserRole = new SysUserRole();
+//        sysUserRole.setUserId(sysUser.getId());
+//        sysUserRole.setRoleId(1L);
+//        sysUserRoleMapper.insert(sysUserRole);
 
         log.info("管理员添加用户成功: {}", userAddDTO.getUsername());
         return Result.success("添加用户成功", null);

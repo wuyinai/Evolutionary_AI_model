@@ -10,14 +10,14 @@ public class Result<T> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int code;
-    private String msg;
+    private String message;
     private T data;
 
     private Result() {}
 
     private Result(int code, String msg, T data) {
         this.code = code;
-        this.msg = msg;
+        this.message = msg;
         this.data = data;
     }
 

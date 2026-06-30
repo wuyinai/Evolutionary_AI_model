@@ -12,7 +12,13 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/chat',
+          redirect: '/home',
+        },
+        {
+          path: 'home',
+          name: 'home',
+          component: () => import('../views/HomeView.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'chat',
@@ -90,6 +96,12 @@ const router = createRouter({
           path: 'system/dept',
           name: 'sysDept',
           component: () => import('../views/SysDeptView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: () => import('../views/ProfileView.vue'),
           meta: { requiresAuth: true },
         },
       ],

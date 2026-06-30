@@ -55,10 +55,10 @@ public class AuthServiceImpl implements AuthService {
         sysUserMapper.insert(sysUser);
 
         //分配默认角色（角色ID=1，即普通用户角色）
-        SysUserRole sysUserRole = new SysUserRole();
-        sysUserRole.setUserId(sysUser.getId());
-        sysUserRole.setRoleId(1L);
-        sysUserRoleMapper.insert(sysUserRole);
+//        SysUserRole sysUserRole = new SysUserRole();
+//        sysUserRole.setUserId(sysUser.getId());
+//        sysUserRole.setRoleId(1L);
+//        sysUserRoleMapper.insert(sysUserRole);
 
         log.info("用户注册成功: {}", registerBody.getUsername());
         return Result.success("注册成功", null);

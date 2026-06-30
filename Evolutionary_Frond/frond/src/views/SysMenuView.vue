@@ -222,6 +222,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
 import {
   getPermissionList,
   addPermission,
@@ -230,6 +231,8 @@ import {
   type SysPermission
 } from '@/utils/sysPermissionApi'
 import FeatherIcon from '@/components/FeatherIcon.vue'
+
+const { showSuccess, showError, showWarning } = useToast()
 
 // ==================== 类型定义 ====================
 
@@ -463,7 +466,7 @@ const resetForm = () => {
 
 const handleSave = async () => {
   if (!form.value.permissionName) {
-    alert('请输入菜单名称')
+    showWarning('请输入菜单名称')
     return
   }
 
@@ -504,12 +507,13 @@ const handleSave = async () => {
     if (response.code === 200) {
       closeModal()
       loadPermissions()
+      showSuccess(isEdit.value ? '菜单修改成功' : '菜单添加成功')
     } else {
-      alert(response.message || '操作失败')
+      showError(response.message || '操作失败')
     }
   } catch (error) {
     console.error('保存菜单失败:', error)
-    alert('保存失败')
+    showError('保存失败')
   } finally {
     saving.value = false
   }
@@ -521,14 +525,17 @@ const handleDelete = async (id: string) => {
     const response = await deletePermission(id)
     if (response.code === 200) {
       loadPermissions()
+      showSuccess('菜单删除成功')
     } else {
-      alert(response.message || '删除失败')
+      showError(response.message || '删除失败')
     }
   } catch (error) {
     console.error('删除菜单失败:', error)
-    alert('删除失败')
+    showError('删除失败')
   }
 }
+
+
 </script>
 
 <style scoped>

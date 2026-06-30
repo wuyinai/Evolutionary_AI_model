@@ -12,18 +12,18 @@
 
     <!-- 导航菜单 -->
     <nav class="navigation-menu">
-      <template v-for="item in menuItems" :key="item.path">
-        <!-- 有子菜单的项 -->
-        <div v-if="item.children" class="nav-group">
+      <template v-for="item in displayMenuList" :key="item.path">
+        <!-- 有子菜单的项（目录/分组） -->
+        <div v-if="item.children && item.children.length > 0" class="nav-group">
           <div
             class="nav-item"
             :class="{ active: isGroupActive(item) }"
             @click="toggleGroup(item.path)"
           >
-            <div class="nav-icon">
-              <component :is="item.icon" />
+            <div v-if="item.icon" class="nav-icon">
+              <feather-icon :type="item.icon" :size="20" />
             </div>
-            <span class="nav-label">{{ item.label }}</span>
+            <span class="nav-label">{{ item.permissionName }}</span>
             <svg
               class="expand-arrow"
               :class="{ expanded: expandedGroups[item.path] }"
@@ -47,14 +47,14 @@
               :class="{ active: isActive(child.path) }"
               @click="closeMobileMenu"
             >
-              <div class="nav-icon">
-                <component :is="child.icon" />
+              <div v-if="child.icon" class="nav-icon">
+                <feather-icon :type="child.icon" :size="18" />
               </div>
-              <span class="nav-label">{{ child.label }}</span>
+              <span class="nav-label">{{ child.permissionName }}</span>
             </router-link>
           </div>
         </div>
-        <!-- 无子菜单的项 -->
+        <!-- 无子菜单的项（单个菜单） -->
         <router-link
           v-else
           :to="item.path"
@@ -62,10 +62,10 @@
           :class="{ active: isActive(item.path) }"
           @click="closeMobileMenu"
         >
-          <div class="nav-icon">
-            <component :is="item.icon" />
+          <div v-if="item.icon" class="nav-icon">
+            <feather-icon :type="item.icon" :size="20" />
           </div>
-          <span class="nav-label">{{ item.label }}</span>
+          <span class="nav-label">{{ item.permissionName }}</span>
         </router-link>
       </template>
     </nav>
@@ -112,9 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, h, reactive } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { getUserMenuTree, type SysPermission } from '@/utils/sysPermissionApi'
+import FeatherIcon from '@/components/FeatherIcon.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -127,145 +129,75 @@ const expandedGroups = reactive<Record<string, boolean>>({})
 const userName = computed(() => userStore.userInfo?.username || '用户')
 const userEmail = computed(() => userStore.userInfo?.email || 'user@example.com')
 
-// 导航菜单项
-const menuItems = [
-  {
-    path: '/chat',
-    label: 'AI对话',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('path', { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' })
-    ])
-  },
-  {
-    path: '/knowledge-base',
-    label: '知识库管理',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('path', { d: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20' }),
-      h('path', { d: 'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' })
-    ])
-  },
-  {
-    path: '/knowledge-document',
-    label: '文档管理',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
-      h('polyline', { points: '14 2 14 8 20 8' }),
-      h('line', { x1: 16, y1: 13, x2: 8, y2: 13 }),
-      h('line', { x1: 16, y1: 17, x2: 8, y2: 17 }),
-      h('polyline', { points: '10 9 9 9 8 9' })
-    ])
-  },
-  {
-    path: '/skills',
-    label: 'Skills仓库',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('path', { d: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z' })
-    ])
-  },
-  {
-    path: '/role-expert',
-    label: '角色专家',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
-      h('circle', { cx: 9, cy: 7, r: 4 }),
-      h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }),
-      h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })
-    ])
-  },
-  {
-    path: '/provider-config',
-    label: '供应商配置',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('path', { d: 'M12 2L2 7l10 5 10-5-10-5z' }),
-      h('path', { d: 'M2 17l10 5 10-5' }),
-      h('path', { d: 'M2 12l10 5 10-5' })
-    ])
-  },
-  {
-    path: '/model-config',
-    label: '模型配置',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('polygon', { points: '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2' })
-    ])
-  },
-  {
-    path: '/agent',
-    label: 'Agent助手',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('rect', { x: 3, y: 11, width: 18, height: 10, rx: 2 }),
-      h('circle', { cx: 12, cy: 5, r: 2 }),
-      h('path', { d: 'M12 7v4' }),
-      h('line', { x1: 8, y1: 16, x2: 8, y2: 16 }),
-      h('line', { x1: 16, y1: 16, x2: 16, y2: 16 }),
-      h('line', { x1: 9, y1: 20, x2: 15, y2: 20 })
-    ])
-  },
-  {
-    path: '/ai-hotspot-monitor',
-    label: 'AI热点监控',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
-      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
-      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
-    ])
-  },
-  {
-    path: '/system',
-    label: '系统管理',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('circle', { cx: 12, cy: 12, r: 3 }),
-      h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })
-    ]),
-    children: [
-      {
-        path: '/system/role',
-        label: '角色管理',
-        icon: h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-          h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }),
-          h('circle', { cx: 9, cy: 7, r: 4 }),
-          h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }),
-          h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })
-        ])
-      },
-      {
-        path: '/system/operation-log',
-        label: '操作日志',
-        icon: h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-          h('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
-          h('polyline', { points: '14 2 14 8 20 8' }),
-          h('line', { x1: 16, y1: 13, x2: 8, y2: 13 }),
-          h('line', { x1: 16, y1: 17, x2: 8, y2: 17 }),
-          h('polyline', { points: '10 9 9 9 8 9' })
-        ])
+// 构建树形菜单：将后端返回的扁平列表转为树形结构
+function buildMenuTree(permissions: SysPermission[]): SysPermission[] {
+  const map = new Map<string, SysPermission>()
+  const roots: SysPermission[] = []
+
+  // 先按 id 建立映射
+  permissions.forEach(p => {
+    map.set(p.id, { ...p, children: [] as SysPermission[] })
+  })
+
+  // 构建树
+  permissions.forEach(p => {
+    const node = map.get(p.id)!
+    if (p.parentId === '0' || !map.has(p.parentId)) {
+      roots.push(node)
+    } else {
+      const parent = map.get(p.parentId)
+      if (parent) {
+        if (!parent.children) {
+          parent.children = []
+        }
+        ;(parent.children as SysPermission[]).push(node)
       }
-    ]
-  },
-  {
-    path: '/reserved-4',
-    label: '预留4',
-    icon: h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [
-      h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 2, ry: 2 }),
-      h('line', { x1: 12, y1: 8, x2: 12, y2: 16 }),
-      h('line', { x1: 8, y1: 12, x2: 16, y2: 12 })
-    ])
+    }
+  })
+
+  return roots
+}
+
+// 动态菜单列表（树形结构）
+const menuTree = ref<SysPermission[]>([])
+const displayMenuList = computed(() => menuTree.value)
+
+// 加载菜单
+async function loadMenus() {
+  try {
+    const response = await getUserMenuTree()
+    if (response.code === 200 && response.data) {
+      const tree = buildMenuTree(response.data)
+      menuTree.value = tree
+      // 缓存到 store
+      userStore.userMenus = response.data
+    }
+  } catch (error) {
+    console.error('加载菜单失败:', error)
   }
-]
+}
+
+onMounted(() => {
+  loadMenus()
+})
 
 // 判断当前路由是否激活
-const isActive = (path: string) => {
+const isActive = (path?: string) => {
+  if (!path) return false
   return route.path === path || route.path.startsWith(path + '/')
 }
 
-// 判断分组是否激活（子菜单中有激活项）
-const isGroupActive = (item: any) => {
-  if (item.children) {
-    return item.children.some((child: any) => isActive(child.path))
+// 判断分组是否激活
+const isGroupActive = (item: SysPermission) => {
+  if (item.children && (item.children as SysPermission[]).length > 0) {
+    return (item.children as SysPermission[]).some((child: SysPermission) => isActive(child.path))
   }
   return isActive(item.path)
 }
 
 // 切换分组展开/折叠
-const toggleGroup = (path: string) => {
+const toggleGroup = (path?: string) => {
+  if (!path) return
   expandedGroups[path] = !expandedGroups[path]
 }
 

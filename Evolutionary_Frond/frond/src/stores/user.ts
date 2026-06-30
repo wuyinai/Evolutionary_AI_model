@@ -5,12 +5,14 @@ import { ref } from 'vue'
 import { post, get } from '@/utils/request'
 import { setToken, removeToken, setUserInfo, removeUserInfo, getToken } from '@/utils/auth'
 import type { User, LoginForm, RegisterForm, LoginResponse, RegisterResponse, UserResponse } from '@/types/user'
+import type { SysPermission } from '@/utils/sysPermissionApi'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
   const token = ref<string | null>(getToken())
   const userInfo = ref<User | null>(null)
   const isLoggedIn = ref<boolean>(!!token.value)
+  const userMenus = ref<SysPermission[]>([])  // 当前用户的菜单树
 
   /**
    * 用户登录
@@ -77,6 +79,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = null
     userInfo.value = null
     isLoggedIn.value = false
+    userMenus.value = []
     removeToken()
     removeUserInfo()
   }
@@ -96,6 +99,7 @@ export const useUserStore = defineStore('user', () => {
     token,
     userInfo,
     isLoggedIn,
+    userMenus,
     login,
     register,
     getUserInfo,

@@ -69,6 +69,18 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'system/menu',
+          name: 'sysMenu',
+          component: () => import('../views/SysMenuView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'user',
+          name: 'sysUser',
+          component: () => import('../views/SysUserView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'system/operation-log',
           name: 'operationLog',
           component: () => import('../views/OperationLogView.vue'),

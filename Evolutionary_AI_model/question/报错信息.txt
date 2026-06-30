@@ -1,4 +1,4 @@
-2026-06-29T16:43:01.634+08:00 ERROR 18808 --- [Evolutionary_AI_model] [nio-8234-exec-8] c.e.e.handler.GlobalExceptionHandler     : 系统异常:
+2026-06-29T17:52:39.155+08:00 ERROR 26204 --- [Evolutionary_AI_model] [nio-8234-exec-4] c.e.e.handler.GlobalExceptionHandler     : 系统异常:
 
 org.springframework.security.authorization.AuthorizationDeniedException: Access Denied
 	at org.springframework.security.authorization.method.ThrowingMethodAuthorizationDeniedHandler.handleDeniedInvocation(ThrowingMethodAuthorizationDeniedHandler.java:38) ~[spring-security-core-6.5.10.jar:6.5.10]
@@ -11,7 +11,7 @@ org.springframework.security.authorization.AuthorizationDeniedException: Access 
 	at org.springframework.aop.interceptor.ExposeInvocationInterceptor.invoke(ExposeInvocationInterceptor.java:97) ~[spring-aop-6.2.18.jar:6.2.18]
 	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.18.jar:6.2.18]
 	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728) ~[spring-aop-6.2.18.jar:6.2.18]
-	at com.example.evolutionary_ai_model.controller.SysUserController$$SpringCGLIB$$0.listUsers(<generated>) ~[classes/:na]
+	at com.example.evolutionary_ai_model.controller.SysPermissionController$$SpringCGLIB$$0.listAllPermissions(<generated>) ~[classes/:na]
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
 	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-6.2.18.jar:6.2.18]

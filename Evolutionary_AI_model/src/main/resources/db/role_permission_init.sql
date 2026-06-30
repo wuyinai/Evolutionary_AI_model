@@ -39,8 +39,20 @@ INSERT INTO `sys_permission` (`id`, `parent_id`, `permission_name`, `permission_
 VALUES 
 (130, 100, '部门查询', 'sys:dept:list', 3, NULL, NULL, NULL, 1, 1, 1, 'admin', '部门查询权限（用于角色分配用户）');
 
+-- 8. 插入菜单管理菜单权限
+INSERT INTO `sys_permission` (`id`, `parent_id`, `permission_name`, `permission_code`, `permission_type`, `path`, `component`, `icon`, `sort`, `visible`, `status`, `create_by`, `remark`)
+VALUES (140, 100, '菜单管理', 'sys:permission', 2, '/system/menu', 'SysMenuView', 'menu', 3, 1, 1, 'admin', '菜单管理菜单');
+
+-- 9. 插入菜单管理按钮权限
+INSERT INTO `sys_permission` (`id`, `parent_id`, `permission_name`, `permission_code`, `permission_type`, `path`, `component`, `icon`, `sort`, `visible`, `status`, `create_by`, `remark`)
+VALUES 
+(141, 140, '菜单查询', 'sys:permission:list', 3, NULL, NULL, NULL, 1, 1, 1, 'admin', '菜单查询权限'),
+(142, 140, '菜单添加', 'sys:permission:add', 3, NULL, NULL, NULL, 2, 1, 1, 'admin', '菜单添加权限'),
+(143, 140, '菜单编辑', 'sys:permission:edit', 3, NULL, NULL, NULL, 3, 1, 1, 'admin', '菜单编辑权限'),
+(144, 140, '菜单删除', 'sys:permission:delete', 3, NULL, NULL, NULL, 4, 1, 1, 'admin', '菜单删除权限');
+
 -- =============================================
--- 8. 创建管理员角色（如果不存在）
+-- 10. 创建管理员角色（如果不存在）
 -- =============================================
 INSERT INTO `sys_role` (`id`, `role_name`, `role_code`, `role_sort`, `data_scope`, `status`, `create_by`, `remark`)
 SELECT 1, '超级管理员', 'admin', 1, 1, 1, 'admin', '超级管理员角色'
@@ -51,7 +63,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `sys_role` WHERE `role_code` = 'admin');
 -- 9. 为管理员角色分配权限
 -- =============================================
 INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
-SELECT 1, id FROM `sys_permission` WHERE id BETWEEN 100 AND 130
+SELECT 1, id FROM `sys_permission` WHERE id BETWEEN 100 AND 144
 ON DUPLICATE KEY UPDATE `role_id` = `role_id`;
 
 -- =============================================

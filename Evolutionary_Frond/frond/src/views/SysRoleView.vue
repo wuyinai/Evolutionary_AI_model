@@ -88,7 +88,7 @@
 
     <!-- 添加/编辑角色弹窗 -->
     <div v-if="showRoleModal" class="modal-overlay" @click="closeRoleModal">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content role-edit-modal" @click.stop>
         <div class="modal-header">
           <h2>{{ isEdit ? '编辑角色' : '添加角色' }}</h2>
           <button class="modal-close" @click="closeRoleModal">
@@ -99,6 +99,7 @@
           </button>
         </div>
         <div class="modal-body">
+          <!-- 基本信息 -->
           <div class="form-group">
             <label>角色名称 <span class="required">*</span></label>
             <input type="text" v-model="roleForm.roleName" placeholder="请输入角色名称" />
@@ -121,6 +122,56 @@
           <div class="form-group">
             <label>备注</label>
             <textarea v-model="roleForm.remark" placeholder="请输入备注"></textarea>
+          </div>
+
+          <!-- 权限分配 -->
+          <div v-if="isEdit && permissionTree.length > 0" class="permission-section">
+            <label class="section-label">菜单权限</label>
+            <div class="permission-tree">
+              <div v-for="node in permissionTree" :key="node.id" class="tree-node">
+                <div class="tree-node-label" @click="toggleNodeExpand(node)">
+                  <span class="expand-icon">{{ node.expanded ? '▼' : '▶' }}</span>
+                  <input
+                    type="checkbox"
+                    :checked="isNodeChecked(node)"
+                    :indeterminate="isNodeIndeterminate(node)"
+                    @change.stop="toggleNodeCheck(node, $event)"
+                  />
+                  <span class="node-name">{{ node.permissionName }}</span>
+                  <span v-if="node.permissionCode" class="node-code">{{ node.permissionCode }}</span>
+                </div>
+                <div v-if="node.expanded && node.children && node.children.length > 0" class="tree-children" :style="{ paddingLeft: '24px' }">
+                  <div v-for="child in node.children" :key="child.id" class="tree-node">
+                    <div class="tree-node-label" @click="toggleNodeExpand(child)">
+                      <span v-if="child.children && child.children.length > 0" class="expand-icon">{{ child.expanded ? '▼' : '▶' }}</span>
+                      <span v-else class="expand-icon" style="visibility:hidden">▶</span>
+                      <input
+                        type="checkbox"
+                        :checked="isNodeChecked(child)"
+                        :indeterminate="isNodeIndeterminate(child)"
+                        @change.stop="toggleNodeCheck(child, $event)"
+                      />
+                      <span class="node-name">{{ child.permissionName }}</span>
+                      <span v-if="child.permissionCode" class="node-code">{{ child.permissionCode }}</span>
+                    </div>
+                    <div v-if="child.expanded && child.children && child.children.length > 0" class="tree-children" :style="{ paddingLeft: '24px' }">
+                      <div v-for="grandchild in child.children" :key="grandchild.id" class="tree-node">
+                        <div class="tree-node-label">
+                          <span class="expand-icon" style="visibility:hidden">▶</span>
+                          <input
+                            type="checkbox"
+                            :checked="selectedPermissionIds.has(grandchild.id)"
+                            @change="toggleLeafCheck(grandchild.id)"
+                          />
+                          <span class="node-name">{{ grandchild.permissionName }}</span>
+                          <span v-if="grandchild.permissionCode" class="node-code">{{ grandchild.permissionCode }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -229,6 +280,18 @@ import {
 } from '@/utils/sysRoleApi'
 import { getUserList, type PageResponse } from '@/utils/sysUserApi'
 import { getDeptList, type SysDept } from '@/utils/sysDeptApi'
+import {
+  getPermissionList,
+  getRolePermissionIds,
+  updateRolePermissions,
+  type SysPermission
+} from '@/utils/sysPermissionApi'
+
+// 带展开状态和子节点的权限树节点
+interface PermissionTreeNode extends SysPermission {
+  children?: PermissionTreeNode[]
+  expanded?: boolean
+}
 
 const loading = ref(false)
 const roles = ref<SysRole[]>([])
@@ -264,6 +327,12 @@ const loadingAvailableUsers = ref(false)
 
 const selectedRemoveIds = ref<string[]>([])
 const selectedAddIds = ref<string[]>([])
+
+// 权限树相关
+const allPermissions = ref<SysPermission[]>([])
+const permissionTree = ref<PermissionTreeNode[]>([])
+const selectedPermissionIds = ref<Set<string>>(new Set())
+const loadingPermissions = ref(false)
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const availableUserPages = computed(() => Math.ceil(availableUserTotal.value / availableUserSize.value) || 1)
@@ -305,7 +374,7 @@ const openAddModal = () => {
   showRoleModal.value = true
 }
 
-const openEditModal = (role: SysRole) => {
+const openEditModal = async (role: SysRole) => {
   isEdit.value = true
   roleForm.value = {
     id: role.id,
@@ -316,10 +385,128 @@ const openEditModal = (role: SysRole) => {
     remark: role.remark || ''
   }
   showRoleModal.value = true
+  // 加载权限树和已分配的权限ID
+  await loadAllPermissions()
+  await loadRolePermissionIds(role.id)
 }
 
-const closeRoleModal = () => {
-  showRoleModal.value = false
+// 加载所有权限并构建树
+const loadAllPermissions = async () => {
+  loadingPermissions.value = true
+  try {
+    const response = await getPermissionList()
+    if (response.code === 200 && response.data) {
+      allPermissions.value = response.data
+      buildPermissionTree()
+    }
+  } catch (error) {
+    console.error('加载权限列表失败:', error)
+  } finally {
+    loadingPermissions.value = false
+  }
+}
+
+// 构建权限树
+function buildPermissionTree() {
+  const map = new Map<string, PermissionTreeNode>()
+  const roots: PermissionTreeNode[] = []
+
+  allPermissions.value.forEach(p => {
+    map.set(p.id, { ...p, children: [], expanded: true })
+  })
+
+  allPermissions.value.forEach(p => {
+    const node = map.get(p.id)!
+    if (p.parentId === '0' || !map.has(p.parentId)) {
+      roots.push(node)
+    } else {
+      const parent = map.get(p.parentId)
+      if (parent) {
+        if (!parent.children) parent.children = []
+        parent.children.push(node)
+      }
+    }
+  })
+
+  // 按 sort 排序
+  const sortNodes = (nodes: PermissionTreeNode[]) => {
+    nodes.sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    nodes.forEach(n => {
+      if (n.children && n.children.length > 0) sortNodes(n.children)
+    })
+  }
+  sortNodes(roots)
+
+  permissionTree.value = roots
+}
+
+// 加载角色已分配的权限ID
+const loadRolePermissionIds = async (roleId: string) => {
+  try {
+    const response = await getRolePermissionIds(roleId)
+    if (response.code === 200 && response.data) {
+      selectedPermissionIds.value = new Set(response.data)
+    }
+  } catch (error) {
+    console.error('加载角色权限失败:', error)
+  }
+}
+
+// 判断节点是否被选中（所有子节点都被选中）
+function isNodeChecked(node: PermissionTreeNode): boolean {
+  if (!node.children || node.children.length === 0) {
+    return selectedPermissionIds.value.has(node.id)
+  }
+  // 所有直接子节点都被选中
+  return node.children.every(child => isNodeChecked(child))
+}
+
+// 判断节点是否为半选状态（部分子节点被选中）
+function isNodeIndeterminate(node: PermissionTreeNode): boolean {
+  if (!node.children || node.children.length === 0) return false
+  const checkedCount = node.children.filter(child => isNodeChecked(child) || isNodeIndeterminate(child)).length
+  return checkedCount > 0 && checkedCount < node.children.length
+}
+
+// 切换节点展开/折叠
+function toggleNodeExpand(node: PermissionTreeNode) {
+  node.expanded = !node.expanded
+}
+
+// 切换节点选中状态（级联子节点）
+function toggleNodeCheck(node: PermissionTreeNode, event: Event) {
+  const checked = (event.target as HTMLInputElement).checked
+  const ids = collectAllIds(node)
+  ids.forEach(id => {
+    if (checked) {
+      selectedPermissionIds.value.add(id)
+    } else {
+      selectedPermissionIds.value.delete(id)
+    }
+  })
+  // 触发响应式更新
+  selectedPermissionIds.value = new Set(selectedPermissionIds.value)
+}
+
+// 切换叶子节点选中状态
+function toggleLeafCheck(id: string) {
+  if (selectedPermissionIds.value.has(id)) {
+    selectedPermissionIds.value.delete(id)
+  } else {
+    selectedPermissionIds.value.add(id)
+  }
+  selectedPermissionIds.value = new Set(selectedPermissionIds.value)
+}
+
+// 收集节点及其所有子节点的ID
+function collectAllIds(node: PermissionTreeNode): string[] {
+  const ids = [node.id]
+  if (node.children) {
+    node.children.forEach(child => {
+      ids.push(...collectAllIds(child))
+    })
+  }
+  return ids
 }
 
 const handleSaveRole = async () => {
@@ -351,6 +538,11 @@ const handleSaveRole = async () => {
     }
 
     if (response.code === 200) {
+      // 如果是编辑模式，保存权限分配
+      if (isEdit.value && roleForm.value.id) {
+        const permissionIds = Array.from(selectedPermissionIds.value)
+        await updateRolePermissions(roleForm.value.id, permissionIds)
+      }
       closeRoleModal()
       loadRoles()
     } else {
@@ -362,6 +554,15 @@ const handleSaveRole = async () => {
   } finally {
     savingRole.value = false
   }
+}
+
+const closeRoleModal = () => {
+  showRoleModal.value = false
+  // 清理权限树状态
+  setTimeout(() => {
+    permissionTree.value = []
+    selectedPermissionIds.value = new Set()
+  }, 300)
 }
 
 const handleDelete = async (roleId: string) => {
@@ -678,6 +879,10 @@ const formatTime = (time?: string) => {
   max-width: 700px;
 }
 
+.role-edit-modal {
+  max-width: 560px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -830,5 +1035,76 @@ const formatTime = (time?: string) => {
 .mini-pagination .page-info {
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+/* 权限树样式 */
+.permission-section {
+  margin-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-md);
+}
+
+.section-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-sm);
+}
+
+.permission-tree {
+  max-height: 350px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  background-color: var(--color-background-soft);
+}
+
+.tree-node {
+  margin: 2px 0;
+}
+
+.tree-node-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tree-node-label:hover {
+  background-color: #e8f0fe;
+}
+
+.expand-icon {
+  font-size: 10px;
+  width: 14px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.tree-node-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.node-name {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.node-code {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-left: 4px;
+}
+
+.tree-children {
+  border-left: 1px dashed var(--color-border);
+  margin-left: 7px;
 }
 </style>

@@ -32,6 +32,35 @@ export interface PageResponse<T> {
 }
 
 /**
+ * 用户添加请求参数
+ */
+export interface UserAddData {
+  username: string
+  password: string
+  realName?: string
+  email?: string
+  phone?: string
+  gender?: number
+  status?: number
+  deptId?: string
+  remark?: string
+}
+
+/**
+ * 用户修改请求参数
+ */
+export interface UserUpdateData {
+  id: string
+  realName?: string
+  email?: string
+  phone?: string
+  gender?: number
+  status?: number
+  deptId?: string
+  remark?: string
+}
+
+/**
  * 分页查询用户列表（支持部门筛选）
  */
 export const getUserList = (
@@ -44,4 +73,32 @@ export const getUserList = (
   params.append('size', size.toString())
   if (deptId) params.append('deptId', deptId)
   return request.get(`/system/user/list?${params.toString()}`)
+}
+
+/**
+ * 根据ID查询用户信息
+ */
+export const getUserById = (userId: string): Promise<ApiResponse<SysUser>> => {
+  return request.get(`/system/user/${userId}`)
+}
+
+/**
+ * 添加用户
+ */
+export const addUser = (data: UserAddData): Promise<ApiResponse<void>> => {
+  return request.post('/system/user', data)
+}
+
+/**
+ * 修改用户信息
+ */
+export const updateUser = (data: UserUpdateData): Promise<ApiResponse<void>> => {
+  return request.put('/system/user', data)
+}
+
+/**
+ * 删除用户
+ */
+export const deleteUser = (userId: string): Promise<ApiResponse<void>> => {
+  return request.delete(`/system/user/${userId}`)
 }

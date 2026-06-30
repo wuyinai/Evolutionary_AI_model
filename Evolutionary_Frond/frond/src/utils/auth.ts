@@ -1,7 +1,21 @@
 // 认证相关工具函数
 
+import type { User } from '@/types/user'
+
 const TOKEN_KEY = 'token'
 const USER_INFO_KEY = 'userInfo'
+
+/**
+ * JWT Payload 接口
+ */
+export interface JwtPayload {
+  exp?: number
+  iat?: number
+  sub?: string
+  username?: string
+  userId?: number
+  [key: string]: unknown
+}
 
 /**
  * 获取存储的 Token
@@ -34,7 +48,7 @@ export const isAuthenticated = (): boolean => {
 /**
  * 获取存储的用户信息
  */
-export const getUserInfo = (): any => {
+export const getUserInfo = (): User | null => {
   const userInfo = localStorage.getItem(USER_INFO_KEY)
   return userInfo ? JSON.parse(userInfo) : null
 }
@@ -42,7 +56,7 @@ export const getUserInfo = (): any => {
 /**
  * 设置用户信息
  */
-export const setUserInfo = (userInfo: any): void => {
+export const setUserInfo = (userInfo: User): void => {
   localStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo))
 }
 
@@ -64,9 +78,13 @@ export const clearAuth = (): void => {
 /**
  * 解析 JWT Token
  */
-export const parseJwt = (token: string): any => {
+export const parseJwt = (token: string): JwtPayload | null => {
   try {
-    const base64Url = token.split('.')[1]
+    const parts = token.split('.')
+    if (parts.length < 2) {
+      return null
+    }
+    const base64Url = parts[1]!
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
     const jsonPayload = decodeURIComponent(
       atob(base64)
@@ -76,7 +94,7 @@ export const parseJwt = (token: string): any => {
         })
         .join(''),
     )
-    return JSON.parse(jsonPayload)
+    return JSON.parse(jsonPayload) as JwtPayload
   } catch (e) {
     return null
   }

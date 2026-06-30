@@ -1,18 +1,74 @@
 // 用户状态管理
 
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { post, get } from '@/utils/request'
-import { setToken, removeToken, setUserInfo, removeUserInfo, getToken } from '@/utils/auth'
+import { setToken, removeToken, setUserInfo, removeUserInfo, getToken, getUserInfo as getStoredUserInfo } from '@/utils/auth'
 import type { User, LoginForm, RegisterForm, LoginResponse, RegisterResponse, UserResponse } from '@/types/user'
 import type { SysPermission } from '@/utils/sysPermissionApi'
+
+const USER_STORE_KEY = 'user-store'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
   const token = ref<string | null>(getToken())
-  const userInfo = ref<User | null>(null)
+  const userInfo = ref<User | null>(getStoredUserInfo())
   const isLoggedIn = ref<boolean>(!!token.value)
   const userMenus = ref<SysPermission[]>([])  // 当前用户的菜单树
+
+  /**
+   * 从 localStorage 恢复状态
+   */
+  const restoreState = () => {
+    const savedToken = getToken()
+    const savedUserInfo = getStoredUserInfo()
+    
+    if (savedToken) {
+      token.value = savedToken
+      isLoggedIn.value = true
+    }
+    
+    if (savedUserInfo) {
+      userInfo.value = savedUserInfo
+    }
+  }
+
+  /**
+   * 持久化状态到 localStorage
+   */
+  const persistState = () => {
+    if (token.value) {
+      setToken(token.value)
+    } else {
+      removeToken()
+    }
+    
+    if (userInfo.value) {
+      setUserInfo(userInfo.value)
+    } else {
+      removeUserInfo()
+    }
+  }
+
+  /**
+   * 重置状态到初始值
+   */
+  const reset = () => {
+    token.value = null
+    userInfo.value = null
+    isLoggedIn.value = false
+    userMenus.value = []
+    removeToken()
+    removeUserInfo()
+  }
+
+  // 初始化时恢复状态
+  restoreState()
+
+  // 监听状态变化并自动持久化
+  watch([token, userInfo, isLoggedIn], () => {
+    persistState()
+  }, { deep: true })
 
   /**
    * 用户登录
@@ -76,23 +132,14 @@ export const useUserStore = defineStore('user', () => {
    * 用户登出
    */
   const logout = () => {
-    token.value = null
-    userInfo.value = null
-    isLoggedIn.value = false
-    userMenus.value = []
-    removeToken()
-    removeUserInfo()
+    reset()
   }
 
   /**
-   * 初始化用户状态
+   * 初始化用户状态（已通过 restoreState 实现）
    */
   const initUserState = () => {
-    const savedToken = getToken()
-    if (savedToken) {
-      token.value = savedToken
-      isLoggedIn.value = true
-    }
+    restoreState()
   }
 
   return {
@@ -104,6 +151,7 @@ export const useUserStore = defineStore('user', () => {
     register,
     getUserInfo,
     logout,
+    reset,
     initUserState,
   }
 })

@@ -1,7 +1,10 @@
 // Axios HTTP 客户端配置
 
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, AxiosError } from 'axios'
 import type { ApiResponse } from '@/types/api'
+import { AppError, AppErrorType } from '@/types/api'
+import { useToast } from '@/composables/useToast'
+import { clearAuth } from '@/utils/auth'
 
 // 创建 axios 实例
 const request: AxiosInstance = axios.create({
@@ -31,37 +34,59 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     // 直接返回响应数据
-    return response.data
+    return response.data as any
   },
-  (error) => {
+  (error: AxiosError) => {
+    const toast = useToast()
+    let appError: AppError
+
     // 处理错误响应
     if (error.response) {
-      const { status } = error.response
+      const { status, data } = error.response
+      const message = (data as any)?.message
 
-      if (status === 401) {
-        // Token 过期或无效，清除本地存储并跳转到登录页
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
-        window.location.href = '/login'
-      } else if (status === 403) {
-        // 权限不足
-        console.error('权限不足')
-      } else if (status === 404) {
-        // 资源不存在
-        console.error('请求的资源不存在')
-      } else if (status >= 500) {
-        // 服务器错误
-        console.error('服务器错误')
+      // 根据状态码创建对应的AppError
+      appError = AppError.fromHttpStatus(status, message)
+
+      // 显示用户友好的错误提示
+      switch (status) {
+        case 401:
+          // Token 过期或无效，清除本地存储并跳转到登录页
+          clearAuth()
+          window.location.href = '/login'
+          break
+        case 403:
+          toast.showError('权限不足，无法访问该资源')
+          break
+        case 404:
+          toast.showError('请求的资源不存在')
+          break
+        default:
+          if (status >= 500) {
+            toast.showError('服务器错误，请稍后重试')
+          } else {
+            toast.showError(message || '请求失败')
+          }
       }
     } else if (error.request) {
       // 请求已发出但没有收到响应
-      console.error('网络错误，请检查您的网络连接')
+      if (error.code === 'ECONNABORTED') {
+        appError = AppError.timeoutError()
+        toast.showError('请求超时，请稍后重试')
+      } else {
+        appError = AppError.networkError()
+        toast.showError('网络错误，请检查您的网络连接')
+      }
     } else {
       // 请求配置出错
-      console.error('请求配置错误:', error.message)
+      appError = AppError.unknownError(error)
+      toast.showError('请求配置错误')
     }
 
-    return Promise.reject(error)
+    // 将原始错误附加到AppError上，方便调试
+    appError.originalError = error
+
+    return Promise.reject(appError)
   },
 )
 

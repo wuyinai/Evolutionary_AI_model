@@ -33,3 +33,24 @@ SELECT COUNT(*) AS perm_count FROM sys_role_permission WHERE role_id = 1;
 
 SELECT '---- 管理员角色所有权限ID ----' AS '';
 SELECT permission_id FROM sys_role_permission WHERE role_id = 1 ORDER BY permission_id;
+
+
+
+INSERT INTO `sys_permission` (`id`, `parent_id`, `permission_name`, `permission_code`, `permission_type`, `path`, `component`, `icon`, `sort`, `visible`, `status`, `create_by`, `remark`)
+VALUES (150, 100, '部门管理', 'sys:dept', 2, '/system/dept', 'SysDeptView', 'home', 4, 1, 1, 'admin', '部门管理菜单');
+
+-- 2. 插入部门管理按钮权限
+INSERT INTO `sys_permission` (`id`, `parent_id`, `permission_name`, `permission_code`, `permission_type`, `path`, `component`, `icon`, `sort`, `visible`, `status`, `create_by`, `remark`)
+VALUES
+    (151, 150, '部门查询', 'sys:dept:list', 3, NULL, NULL, NULL, 1, 1, 1, 'admin', '部门查询权限'),
+    (152, 150, '部门添加', 'sys:dept:add', 3, NULL, NULL, NULL, 2, 1, 1, 'admin', '部门添加权限'),
+    (153, 150, '部门编辑', 'sys:dept:edit', 3, NULL, NULL, NULL, 3, 1, 1, 'admin', '部门编辑权限'),
+    (154, 150, '部门删除', 'sys:dept:delete', 3, NULL, NULL, NULL, 4, 1, 1, 'admin', '部门删除权限');
+
+-- 3. 为管理员角色分配部门管理权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 1, id FROM `sys_permission` WHERE id BETWEEN 150 AND 154
+ON DUPLICATE KEY UPDATE `role_id` = `role_id`;
+
+
+ALTER TABLE `sys_dept` ADD COLUMN `leader_id` BIGINT NULL COMMENT '负责人用户ID' AFTER `leader`;

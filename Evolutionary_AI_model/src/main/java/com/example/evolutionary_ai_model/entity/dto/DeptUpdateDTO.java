@@ -32,8 +32,11 @@ public class DeptUpdateDTO implements Serializable {
     //显示顺序
     private Integer sort;
 
-    //负责人
+    //负责人姓名
     private String leader;
+
+    //负责人用户ID
+    private Long leaderId;
 
     //联系电话
     private String phone;

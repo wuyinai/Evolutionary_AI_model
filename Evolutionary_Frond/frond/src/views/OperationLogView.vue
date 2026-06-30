@@ -100,13 +100,30 @@
 
     <!-- 分页 -->
     <div class="pagination">
+      <div class="page-size-select">
+        <span>每页</span>
+        <select v-model.number="pageSize" @change="handlePageSizeChange">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span>条</span>
+      </div>
+      <span class="page-info">共 {{ total }} 条</span>
       <button class="btn btn-secondary" :disabled="currentPage === 1" @click="handlePageChange(currentPage - 1)">
         上一页
       </button>
-      <span class="page-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页（共 {{ total }} 条）</span>
+      <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</span>
       <button class="btn btn-secondary" :disabled="currentPage >= totalPages" @click="handlePageChange(currentPage + 1)">
         下一页
       </button>
+      <div class="page-jump">
+        <span>跳至</span>
+        <input type="number" v-model.number="jumpPage" :min="1" :max="totalPages" @keyup.enter="handleJumpPage" />
+        <span>页</span>
+        <button class="btn btn-secondary btn-sm" @click="handleJumpPage">跳转</button>
+      </div>
     </div>
 
     <!-- 详情弹窗 -->
@@ -188,6 +205,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
 import {
   getOperationLogList,
   deleteOperationLog,
@@ -197,11 +215,14 @@ import {
   type PageResponse
 } from '@/utils/operationLogApi'
 
+const { showSuccess, showError, showWarning } = useToast()
+
 const loading = ref(false)
 const logs = ref<OperationLog[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const jumpPage = ref(1)
 const selectedIds = ref<string[]>([])
 const selectAll = ref(false)
 const showDetailModal = ref(false)
@@ -238,9 +259,23 @@ const handleSelectAll = () => {
   }
 }
 
+const handlePageSizeChange = () => {
+  currentPage.value = 1
+  jumpPage.value = 1
+  loadLogs()
+}
+
 const handlePageChange = (page: number) => {
   currentPage.value = page
+  jumpPage.value = page
   loadLogs()
+}
+
+const handleJumpPage = () => {
+  if (jumpPage.value >= 1 && jumpPage.value <= totalPages.value) {
+    currentPage.value = jumpPage.value
+    loadLogs()
+  }
 }
 
 const handleViewDetail = (log: OperationLog) => {
@@ -260,11 +295,11 @@ const handleDelete = async (id: string) => {
     if (response.code === 200) {
       loadLogs()
     } else {
-      alert(response.message || '删除失败')
+      showError(response.message || '删除失败')
     }
   } catch (error) {
     console.error('删除操作日志失败:', error)
-    alert('删除失败')
+    showError('删除失败')
   }
 }
 
@@ -275,11 +310,11 @@ const handleBatchDelete = async () => {
     if (response.code === 200) {
       loadLogs()
     } else {
-      alert(response.message || '批量删除失败')
+      showError(response.message || '批量删除失败')
     }
   } catch (error) {
     console.error('批量删除操作日志失败:', error)
-    alert('批量删除失败')
+    showError('批量删除失败')
   }
 }
 
@@ -290,11 +325,11 @@ const handleClearAll = async () => {
     if (response.code === 200) {
       loadLogs()
     } else {
-      alert(response.message || '清空失败')
+      showError(response.message || '清空失败')
     }
   } catch (error) {
     console.error('清空操作日志失败:', error)
-    alert('清空失败')
+    showError('清空失败')
   }
 }
 
@@ -305,69 +340,78 @@ const formatTime = (time?: string) => {
 </script>
 
 <style scoped>
+/* ========== 页面布局 ========== */
 .operation-log-view {
-  padding: var(--spacing-xl);
+  padding: 24px 32px;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: #f5f7fa;
 }
 
+/* ========== 页面头部 ========== */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 24px;
 }
 
 .page-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1a1a2e;
+  letter-spacing: 0.5px;
 }
 
 .header-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: 12px;
 }
 
+/* ========== 表格容器 ========== */
 .log-table-container {
   background-color: #ffffff;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* ========== 表格样式 ========== */
 .log-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .log-table th {
-  background-color: var(--color-background-soft);
-  padding: var(--spacing-md);
+  background-color: #fafafc;
+  padding: 14px 16px;
   text-align: left;
   font-weight: 600;
   font-size: 14px;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
+  color: #5c5c7a;
+  border-bottom: 1px solid #e8e8f0;
 }
 
 .log-table td {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f5;
   font-size: 14px;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
-.log-table tr:hover {
-  background-color: var(--color-background-soft);
+.log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.log-table tbody tr:hover {
+  background-color: #fafafc;
 }
 
 .log-table tr.selected {
-  background-color: var(--color-primary-light);
+  background-color: #e8f0fe;
 }
 
 .checkbox-col {
-  width: 40px;
+  width: 48px;
   text-align: center;
 }
 
@@ -379,30 +423,31 @@ const formatTime = (time?: string) => {
 }
 
 .action-col {
-  width: 80px;
+  width: 100px;
 }
 
+/* ========== 加载与空状态 ========== */
 .loading-cell,
 .empty-cell {
   text-align: center;
-  padding: var(--spacing-xl);
-  color: var(--color-text-secondary);
+  padding: 48px 16px;
+  color: #8a8aa0;
 }
 
 .loading-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
+  gap: 12px;
 }
 
 .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
+  border: 2px solid #e0e0e8;
+  border-top-color: #4a7cf7;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -411,77 +456,164 @@ const formatTime = (time?: string) => {
   }
 }
 
+/* ========== 状态标签 ========== */
 .status-tag {
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
 }
 
 .status-tag.success {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-tag.fail {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #c62828;
 }
 
+/* ========== 操作按钮 ========== */
 .btn-icon {
-  padding: var(--spacing-xs);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  transition: all 0.2s ease-out;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 6px;
+  color: #8a8aa0;
+  background-color: transparent;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover {
-  background-color: var(--color-background-soft);
-  color: var(--color-text);
+  background-color: #f0f0f5;
+  color: #1a1a2e;
 }
 
 .btn-danger-icon:hover {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #c62828;
 }
 
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* ========== 批量操作栏 ========== */
 .batch-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background-color: var(--color-primary-light);
-  border-radius: var(--radius-md);
-  margin-top: var(--spacing-md);
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #e8f0fe;
+  border-radius: 8px;
+  margin-top: 16px;
 }
 
 .selected-count {
   font-size: 14px;
-  color: var(--color-primary);
+  color: #4a7cf7;
   font-weight: 500;
 }
 
+/* ========== 分页样式 ========== */
 .pagination {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xl);
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .page-info {
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #5c5c7a;
 }
 
-/* 详情弹窗 */
+.page-size-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+}
+
+.page-size-select span {
+  font-size: 14px;
+  color: #5c5c7a;
+  white-space: nowrap;
+}
+
+.page-size-select select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e8;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1a1a2e;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 64px;
+}
+
+.page-size-select select:hover {
+  border-color: #c0c0c8;
+}
+
+.page-size-select select:focus {
+  border-color: #4a7cf7;
+  outline: none;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-jump span {
+  font-size: 14px;
+  color: #5c5c7a;
+}
+
+.page-jump input {
+  width: 56px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e8;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  color: #1a1a2e;
+  transition: border-color 0.2s;
+}
+
+.page-jump input:hover {
+  border-color: #c0c0c8;
+}
+
+.page-jump input:focus {
+  border-color: #4a7cf7;
+  outline: none;
+}
+
+/* ========== 详情弹窗 ========== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(26, 26, 46, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -490,71 +622,135 @@ const formatTime = (time?: string) => {
 
 .modal-content {
   background-color: #ffffff;
-  border-radius: var(--radius-lg);
-  max-width: 600px;
+  border-radius: 16px;
   width: 90%;
+  max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-border);
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f5;
 }
 
 .modal-header h2 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
 .modal-close {
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 8px;
+  color: #8a8aa0;
+  background-color: transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
-  background-color: var(--color-background-soft);
+  background-color: #f0f0f5;
+  color: #1a1a2e;
 }
 
 .modal-body {
-  padding: var(--spacing-lg);
+  padding: 24px;
 }
 
 .detail-item {
   display: flex;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 16px;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
 }
 
 .detail-item label {
   width: 120px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: #5c5c7a;
 }
 
 .detail-item span {
   flex: 1;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
 .params-box,
 .error-box {
   flex: 1;
-  background-color: var(--color-background-soft);
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
+  background-color: #fafafc;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 .error-box {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* ========== 按钮全局样式 ========== */
+.btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #4a7cf7;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #3a6ce7;
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: #5c5c7a;
+  border: 1px solid #e0e0e8;
+}
+
+.btn-secondary:hover {
+  background-color: #fafafc;
+  border-color: #c0c0c8;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background-color: #c62828;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #b71c1c;
 }
 </style>

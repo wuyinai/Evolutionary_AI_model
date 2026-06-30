@@ -77,13 +77,30 @@
 
     <!-- 分页 -->
     <div class="pagination">
+      <div class="page-size-select">
+        <span>每页</span>
+        <select v-model.number="pageSize" @change="handlePageSizeChange">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span>条</span>
+      </div>
+      <span class="page-info">共 {{ total }} 条</span>
       <button class="btn btn-secondary" :disabled="currentPage === 1" @click="handlePageChange(currentPage - 1)">
         上一页
       </button>
-      <span class="page-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页（共 {{ total }} 条）</span>
+      <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</span>
       <button class="btn btn-secondary" :disabled="currentPage >= totalPages" @click="handlePageChange(currentPage + 1)">
         下一页
       </button>
+      <div class="page-jump">
+        <span>跳至</span>
+        <input type="number" v-model.number="jumpPage" :min="1" :max="totalPages" @keyup.enter="handleJumpPage" />
+        <span>页</span>
+        <button class="btn btn-secondary btn-sm" @click="handleJumpPage">跳转</button>
+      </div>
     </div>
 
     <!-- 添加/编辑角色弹窗 -->
@@ -98,34 +115,36 @@
             </svg>
           </button>
         </div>
-        <div class="modal-body">
-          <!-- 基本信息 -->
-          <div class="form-group">
-            <label>角色名称 <span class="required">*</span></label>
-            <input type="text" v-model="roleForm.roleName" placeholder="请输入角色名称" />
-          </div>
-          <div class="form-group">
-            <label>角色编码 <span class="required">*</span></label>
-            <input type="text" v-model="roleForm.roleCode" placeholder="请输入角色编码" />
-          </div>
-          <div class="form-group">
-            <label>排序</label>
-            <input type="number" v-model="roleForm.roleSort" placeholder="请输入排序值" />
-          </div>
-          <div class="form-group">
-            <label>状态</label>
-            <select v-model="roleForm.status">
-              <option :value="1">正常</option>
-              <option :value="0">禁用</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>备注</label>
-            <textarea v-model="roleForm.remark" placeholder="请输入备注"></textarea>
+        <div class="modal-body role-edit-body">
+          <!-- 左侧：基本信息 -->
+          <div class="role-info-left">
+            <div class="form-group">
+              <label>角色名称 <span class="required">*</span></label>
+              <input type="text" v-model="roleForm.roleName" placeholder="请输入角色名称" />
+            </div>
+            <div class="form-group">
+              <label>角色编码 <span class="required">*</span></label>
+              <input type="text" v-model="roleForm.roleCode" placeholder="请输入角色编码" />
+            </div>
+            <div class="form-group">
+              <label>排序</label>
+              <input type="number" v-model="roleForm.roleSort" placeholder="请输入排序值" />
+            </div>
+            <div class="form-group">
+              <label>状态</label>
+              <select v-model="roleForm.status">
+                <option :value="1">正常</option>
+                <option :value="0">禁用</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>备注</label>
+              <textarea v-model="roleForm.remark" placeholder="请输入备注"></textarea>
+            </div>
           </div>
 
-          <!-- 权限分配 -->
-          <div v-if="isEdit && permissionTree.length > 0" class="permission-section">
+          <!-- 右侧：权限分配 -->
+          <div v-if="isEdit && permissionTree.length > 0" class="permission-section-right">
             <label class="section-label">菜单权限</label>
             <div class="permission-tree">
               <div v-for="node in permissionTree" :key="node.id" class="tree-node">
@@ -266,6 +285,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
 import {
   getRoleList,
   addRole,
@@ -287,6 +307,8 @@ import {
   type SysPermission
 } from '@/utils/sysPermissionApi'
 
+const { showSuccess, showError, showWarning } = useToast()
+
 // 带展开状态和子节点的权限树节点
 interface PermissionTreeNode extends SysPermission {
   children?: PermissionTreeNode[]
@@ -298,6 +320,7 @@ const roles = ref<SysRole[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const jumpPage = ref(1)
 
 const showRoleModal = ref(false)
 const isEdit = ref(false)
@@ -356,9 +379,23 @@ const loadRoles = async () => {
   }
 }
 
+const handlePageSizeChange = () => {
+  currentPage.value = 1
+  jumpPage.value = 1
+  loadRoles()
+}
+
 const handlePageChange = (page: number) => {
   currentPage.value = page
+  jumpPage.value = page
   loadRoles()
+}
+
+const handleJumpPage = () => {
+  if (jumpPage.value >= 1 && jumpPage.value <= totalPages.value) {
+    currentPage.value = jumpPage.value
+    loadRoles()
+  }
 }
 
 const openAddModal = () => {
@@ -511,7 +548,7 @@ function collectAllIds(node: PermissionTreeNode): string[] {
 
 const handleSaveRole = async () => {
   if (!roleForm.value.roleName || !roleForm.value.roleCode) {
-    alert('请填写角色名称和角色编码')
+    showWarning('请填写角色名称和角色编码')
     return
   }
 
@@ -545,12 +582,13 @@ const handleSaveRole = async () => {
       }
       closeRoleModal()
       loadRoles()
+      showSuccess(isEdit.value ? '角色修改成功' : '角色添加成功')
     } else {
-      alert(response.message || '操作失败')
+      showError(response.message || '操作失败')
     }
   } catch (error) {
     console.error('保存角色失败:', error)
-    alert('保存失败')
+    showError('保存失败')
   } finally {
     savingRole.value = false
   }
@@ -571,12 +609,13 @@ const handleDelete = async (roleId: string) => {
     const response = await deleteRole(roleId)
     if (response.code === 200) {
       loadRoles()
+      showSuccess('角色删除成功')
     } else {
-      alert(response.message || '删除失败')
+      showError(response.message || '删除失败')
     }
   } catch (error) {
     console.error('删除角色失败:', error)
-    alert('删除失败')
+    showError('删除失败')
   }
 }
 
@@ -668,11 +707,11 @@ const handleRemoveUser = async (userId: string) => {
       await loadAssignedUsers(currentRole.value.id)
       selectedRemoveIds.value = selectedRemoveIds.value.filter(id => id !== userId)
     } else {
-      alert(response.message || '移除失败')
+      showError(response.message || '移除失败')
     }
   } catch (error) {
     console.error('移除用户失败:', error)
-    alert('移除失败')
+    showError('移除失败')
   }
 }
 
@@ -685,11 +724,11 @@ const handleRemoveSelected = async () => {
       await loadAssignedUsers(currentRole.value.id)
       selectedRemoveIds.value = []
     } else {
-      alert(response.message || '批量移除失败')
+      showError(response.message || '批量移除失败')
     }
   } catch (error) {
     console.error('批量移除用户失败:', error)
-    alert('批量移除失败')
+    showError('批量移除失败')
   }
 }
 
@@ -702,11 +741,11 @@ const handleAddSelected = async () => {
       await loadAvailableUsers()
       selectedAddIds.value = []
     } else {
-      alert(response.message || '添加失败')
+      showError(response.message || '添加失败')
     }
   } catch (error) {
     console.error('添加用户失败:', error)
-    alert('添加失败')
+    showError('添加失败')
   }
 }
 
@@ -717,83 +756,98 @@ const formatTime = (time?: string) => {
 </script>
 
 <style scoped>
+/* ========== 页面布局 ========== */
 .sys-role-view {
-  padding: var(--spacing-xl);
+  padding: 24px 32px;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: #f5f7fa;
 }
 
+/* ========== 页面头部 ========== */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 24px;
 }
 
 .page-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1a1a2e;
+  letter-spacing: 0.5px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ========== 表格容器 ========== */
 .role-table-container {
   background-color: #ffffff;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* ========== 表格样式 ========== */
 .role-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .role-table th {
-  background-color: var(--color-background-soft);
-  padding: var(--spacing-md);
+  background-color: #fafafc;
+  padding: 14px 16px;
   text-align: left;
   font-weight: 600;
   font-size: 14px;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
+  color: #5c5c7a;
+  border-bottom: 1px solid #e8e8f0;
 }
 
 .role-table td {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f5;
   font-size: 14px;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
-.role-table tr:hover {
-  background-color: var(--color-background-soft);
+.role-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.role-table tbody tr:hover {
+  background-color: #fafafc;
 }
 
 .action-col {
-  width: 100px;
+  width: 120px;
 }
 
+/* ========== 加载与空状态 ========== */
 .loading-cell,
 .empty-cell {
   text-align: center;
-  padding: var(--spacing-xl);
-  color: var(--color-text-secondary);
+  padding: 48px 16px;
+  color: #8a8aa0;
 }
 
 .loading-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
+  gap: 12px;
 }
 
 .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
+  border: 2px solid #e0e0e8;
+  border-top-color: #4a7cf7;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -802,66 +856,147 @@ const formatTime = (time?: string) => {
   }
 }
 
+/* ========== 状态标签 ========== */
 .status-tag {
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
 }
 
 .status-tag.active {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-tag.inactive {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #c62828;
 }
 
+/* ========== 操作按钮 ========== */
 .btn-icon {
-  padding: var(--spacing-xs);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  transition: all 0.2s ease-out;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 6px;
+  color: #8a8aa0;
+  background-color: transparent;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover {
-  background-color: var(--color-background-soft);
-  color: var(--color-text);
+  background-color: #f0f0f5;
+  color: #1a1a2e;
 }
 
 .btn-danger-icon:hover {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #c62828;
 }
 
 .btn-sm {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: 12px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
+/* ========== 分页样式 ========== */
 .pagination {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xl);
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .page-info {
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: #5c5c7a;
 }
 
-/* 弹窗样式 */
+.page-size-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+}
+
+.page-size-select span {
+  font-size: 14px;
+  color: #5c5c7a;
+  white-space: nowrap;
+}
+
+.page-size-select select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e8;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1a1a2e;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 64px;
+}
+
+.page-size-select select:hover {
+  border-color: #c0c0c8;
+}
+
+.page-size-select select:focus {
+  border-color: #4a7cf7;
+  outline: none;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-jump span {
+  font-size: 14px;
+  color: #5c5c7a;
+}
+
+.page-jump input {
+  width: 56px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e8;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  color: #1a1a2e;
+  transition: border-color 0.2s;
+}
+
+.page-jump input:hover {
+  border-color: #c0c0c8;
+}
+
+.page-jump input:focus {
+  border-color: #4a7cf7;
+  outline: none;
+}
+
+/* ========== 弹窗样式 ========== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(26, 26, 46, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -870,9 +1005,10 @@ const formatTime = (time?: string) => {
 
 .modal-content {
   background-color: #ffffff;
-  border-radius: var(--radius-lg);
-  max-width: 500px;
+  border-radius: 16px;
   width: 90%;
+  max-width: 520px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
 .user-modal {
@@ -880,105 +1016,147 @@ const formatTime = (time?: string) => {
 }
 
 .role-edit-modal {
-  max-width: 560px;
+  max-width: 900px;
+}
+
+.role-edit-body {
+  display: flex;
+  gap: 24px;
+}
+
+.role-info-left {
+  flex: 1;
+  min-width: 280px;
+}
+
+.permission-section-right {
+  flex: 1;
+  min-width: 320px;
+  border-left: 1px solid #f0f0f5;
+  padding-left: 24px;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-border);
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f5;
 }
 
 .modal-header h2 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
 .modal-close {
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 8px;
+  color: #8a8aa0;
+  background-color: transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
-  background-color: var(--color-background-soft);
+  background-color: #f0f0f5;
+  color: #1a1a2e;
 }
 
 .modal-body {
-  padding: var(--spacing-lg);
+  padding: 24px;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--color-border);
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #f0f0f5;
 }
 
-/* 表单样式 */
+/* ========== 表单样式 ========== */
 .form-group {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
 }
 
 .form-group label {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text);
-  margin-bottom: var(--spacing-xs);
+  color: #1a1a2e;
+  margin-bottom: 8px;
 }
 
 .required {
-  color: #dc3545;
+  color: #c62828;
+  margin-left: 2px;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e0e0e8;
+  border-radius: 8px;
   font-size: 14px;
+  color: #1a1a2e;
+  background-color: #ffffff;
+  transition: border-color 0.2s;
+}
+
+.form-group textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+  border-color: #c0c0c8;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  border-color: var(--color-primary);
+  border-color: #4a7cf7;
   outline: none;
 }
 
-.form-group textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-/* 用户分配区域 */
+/* ========== 用户分配区域 ========== */
 .user-section {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 20px;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 12px;
 }
 
 .section-header h3 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
 .user-list {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid #e0e0e8;
+  border-radius: 8px;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -986,9 +1164,9 @@ const formatTime = (time?: string) => {
 .user-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f5;
 }
 
 .user-item:last-child {
@@ -996,30 +1174,31 @@ const formatTime = (time?: string) => {
 }
 
 .user-item:hover {
-  background-color: var(--color-background-soft);
+  background-color: #fafafc;
 }
 
 .user-name {
   font-weight: 500;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
 .user-email {
-  color: var(--color-text-secondary);
+  color: #8a8aa0;
   font-size: 12px;
 }
 
 .filter-area {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: 8px;
   align-items: center;
 }
 
 .dept-select {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #e0e0e8;
+  border-radius: 6px;
+  font-size: 13px;
   min-width: 120px;
 }
 
@@ -1027,38 +1206,42 @@ const formatTime = (time?: string) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  border-top: 1px solid var(--color-border);
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #f0f0f5;
 }
 
 .mini-pagination .page-info {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: #8a8aa0;
 }
 
-/* 权限树样式 */
+/* ========== 权限树样式 ========== */
 .permission-section {
-  margin-top: var(--spacing-lg);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--spacing-md);
+  margin-top: 20px;
+  border-top: 1px solid #f0f0f5;
+  padding-top: 20px;
+}
+
+.permission-section-right {
+  /* 右侧权限区域样式已在上方定义 */
 }
 
 .section-label {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--spacing-sm);
+  color: #1a1a2e;
+  margin-bottom: 12px;
 }
 
 .permission-tree {
   max-height: 350px;
   overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm);
-  background-color: var(--color-background-soft);
+  border: 1px solid #e0e0e8;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #fafafc;
 }
 
 .tree-node {
@@ -1068,43 +1251,95 @@ const formatTime = (time?: string) => {
 .tree-node-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
+  transition: background-color 0.2s;
 }
 
 .tree-node-label:hover {
-  background-color: #e8f0fe;
+  background-color: #f0f0f5;
 }
 
 .expand-icon {
   font-size: 10px;
   width: 14px;
   text-align: center;
-  color: var(--color-text-secondary);
+  color: #8a8aa0;
 }
 
 .tree-node-label input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
 }
 
 .node-name {
   font-weight: 500;
-  color: var(--color-text);
+  color: #1a1a2e;
 }
 
 .node-code {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
+  font-size: 12px;
+  color: #8a8aa0;
   margin-left: 4px;
 }
 
 .tree-children {
-  border-left: 1px dashed var(--color-border);
-  margin-left: 7px;
+  border-left: 1px dashed #e0e0e8;
+  margin-left: 8px;
+}
+
+/* ========== 按钮全局样式 ========== */
+.btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #4a7cf7;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #3a6ce7;
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: #5c5c7a;
+  border: 1px solid #e0e0e8;
+}
+
+.btn-secondary:hover {
+  background-color: #fafafc;
+  border-color: #c0c0c8;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background-color: #c62828;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #b71c1c;
 }
 </style>

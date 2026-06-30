@@ -1,5 +1,6 @@
 package com.example.evolutionary_ai_model.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.DeptAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
@@ -50,4 +51,61 @@ public interface SysDeptService {
      * @return 部门列表
      */
     List<SysDept> listAllDepts();
+
+    /**
+     * 分页查询部门列表（支持模糊查询和条件筛选）
+     *
+     * @param page     页码
+     * @param size     每页大小
+     * @param deptName 部门名称（模糊查询）
+     * @param deptCode 门编码（模糊查询）
+     * @param status   状态（0-禁用，1-启用）
+     * @param parentId 父部门ID
+     * @return 部门分页数据
+     */
+    Page<SysDept> listDeptsPage(Integer page, Integer size, String deptName, String deptCode, Integer status, Long parentId);
+
+    /**
+     * 查询部门树形结构（用于前端展示）
+     *
+     * @param deptName 部门名称（模糊查询，可选）
+     * @param deptCode 部门编码（模糊查询，可选）
+     * @param status   状态（0-禁用，1-启用，可选）
+     * @return 部门树形列表
+     */
+    List<SysDept> listDeptTree(String deptName, String deptCode, Integer status);
+
+    /**
+     * 批量关联用户到部门
+     *
+     * @param deptId  部门ID
+     * @param userIds 用户ID列表
+     * @return 操作结果
+     */
+    Result<Void> batchAssignUsers(Long deptId, List<Long> userIds);
+
+    /**
+     * 根据角色批量关联用户到部门
+     *
+     * @param deptId  部门ID
+     * @param roleIds 角色ID列表
+     * @return 操作结果
+     */
+    Result<Void> batchAssignUsersByRoles(Long deptId, List<Long> roleIds);
+
+    /**
+     * 移除用户与部门的关联
+     *
+     * @param userIds 用户ID列表
+     * @return 操作结果
+     */
+    Result<Void> removeUsersFromDept(List<Long> userIds);
+
+    /**
+     * 查询部门下的用户列表
+     *
+     * @param deptId 部门ID
+     * @return 用户ID列表
+     */
+    List<Long> listUsersByDeptId(Long deptId);
 }

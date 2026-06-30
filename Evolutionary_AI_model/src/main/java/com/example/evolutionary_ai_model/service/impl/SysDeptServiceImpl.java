@@ -1,18 +1,27 @@
 package com.example.evolutionary_ai_model.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.DeptAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
 import com.example.evolutionary_ai_model.entity.SysDept;
+import com.example.evolutionary_ai_model.entity.SysUser;
+import com.example.evolutionary_ai_model.entity.SysUserRole;
 import com.example.evolutionary_ai_model.mapper.SysDeptMapper;
+import com.example.evolutionary_ai_model.mapper.SysUserMapper;
+import com.example.evolutionary_ai_model.mapper.SysUserRoleMapper;
 import com.example.evolutionary_ai_model.service.SysDeptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用法：部门管理服务实现类，处理部门的增删改查业务逻辑
@@ -23,6 +32,8 @@ import java.util.List;
 public class SysDeptServiceImpl implements SysDeptService {
 
     private final SysDeptMapper sysDeptMapper;
+    private final SysUserMapper sysUserMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -44,6 +55,7 @@ public class SysDeptServiceImpl implements SysDeptService {
         sysDept.setDeptCode(deptAddDTO.getDeptCode());
         sysDept.setSort(deptAddDTO.getSort() != null ? deptAddDTO.getSort() : 0);
         sysDept.setLeader(deptAddDTO.getLeader());
+        sysDept.setLeaderId(deptAddDTO.getLeaderId());
         sysDept.setPhone(deptAddDTO.getPhone());
         sysDept.setEmail(deptAddDTO.getEmail());
         sysDept.setStatus(deptAddDTO.getStatus() != null ? deptAddDTO.getStatus() : 1);
@@ -64,6 +76,15 @@ public class SysDeptServiceImpl implements SysDeptService {
 
         //插入部门记录
         sysDeptMapper.insert(sysDept);
+
+        //如果有负责人用户ID，将该用户添加到部门
+        if (deptAddDTO.getLeaderId() != null) {
+            LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(SysUser::getId, deptAddDTO.getLeaderId());
+            updateWrapper.set(SysUser::getDeptId, sysDept.getId());
+            sysUserMapper.update(null, updateWrapper);
+            log.info("负责人 {} 已添加到部门 {}", deptAddDTO.getLeaderId(), sysDept.getId());
+        }
 
         log.info("添加部门成功: {}", deptAddDTO.getDeptName());
         return Result.success("添加部门成功", null);
@@ -110,6 +131,7 @@ public class SysDeptServiceImpl implements SysDeptService {
         sysDept.setDeptCode(deptUpdateDTO.getDeptCode());
         sysDept.setSort(deptUpdateDTO.getSort());
         sysDept.setLeader(deptUpdateDTO.getLeader());
+        sysDept.setLeaderId(deptUpdateDTO.getLeaderId());
         sysDept.setPhone(deptUpdateDTO.getPhone());
         sysDept.setEmail(deptUpdateDTO.getEmail());
         sysDept.setStatus(deptUpdateDTO.getStatus());
@@ -129,6 +151,15 @@ public class SysDeptServiceImpl implements SysDeptService {
 
         //更新部门记录
         sysDeptMapper.updateById(sysDept);
+
+        //如果修改了负责人用户ID，将该用户添加到部门
+        if (deptUpdateDTO.getLeaderId() != null) {
+            LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(SysUser::getId, deptUpdateDTO.getLeaderId());
+            updateWrapper.set(SysUser::getDeptId, deptUpdateDTO.getId());
+            sysUserMapper.update(null, updateWrapper);
+            log.info("负责人 {} 已添加到部门 {}", deptUpdateDTO.getLeaderId(), deptUpdateDTO.getId());
+        }
 
         log.info("修改部门成功, deptId: {}", deptUpdateDTO.getId());
         return Result.success("修改部门成功", null);
@@ -174,5 +205,155 @@ public class SysDeptServiceImpl implements SysDeptService {
         wrapper.eq(SysDept::getStatus, 1);
         wrapper.orderByAsc(SysDept::getSort);
         return sysDeptMapper.selectList(wrapper);
+    }
+
+    @Override
+    public Page<SysDept> listDeptsPage(Integer page, Integer size, String deptName, String deptCode, Integer status, Long parentId) {
+        Page<SysDept> pageObj = new Page<>(page, size);
+        LambdaQueryWrapper<SysDept> wrapper = new LambdaQueryWrapper<>();
+
+        //部门名称模糊查询
+        if (StringUtils.hasText(deptName)) {
+            wrapper.like(SysDept::getDeptName, deptName);
+        }
+
+        //部门编码模糊查询
+        if (StringUtils.hasText(deptCode)) {
+            wrapper.like(SysDept::getDeptCode, deptCode);
+        }
+
+        //状态筛选
+        if (status != null) {
+            wrapper.eq(SysDept::getStatus, status);
+        }
+
+        //父部门筛选
+        if (parentId != null) {
+            wrapper.eq(SysDept::getParentId, parentId);
+        }
+
+        //按排序字段升序排列
+        wrapper.orderByAsc(SysDept::getSort);
+        wrapper.orderByAsc(SysDept::getId);
+
+        return sysDeptMapper.selectPage(pageObj, wrapper);
+    }
+
+    @Override
+    public List<SysDept> listDeptTree(String deptName, String deptCode, Integer status) {
+        //查询所有部门，按排序字段升序排列
+        LambdaQueryWrapper<SysDept> wrapper = new LambdaQueryWrapper<>();
+
+        //部门名称模糊查询
+        if (StringUtils.hasText(deptName)) {
+            wrapper.like(SysDept::getDeptName, deptName);
+        }
+
+        //部门编码模糊查询
+        if (StringUtils.hasText(deptCode)) {
+            wrapper.like(SysDept::getDeptCode, deptCode);
+        }
+
+        //状态筛选
+        if (status != null) {
+            wrapper.eq(SysDept::getStatus, status);
+        }
+
+        wrapper.orderByAsc(SysDept::getSort);
+        wrapper.orderByAsc(SysDept::getId);
+        return sysDeptMapper.selectList(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> batchAssignUsers(Long deptId, List<Long> userIds) {
+        //校验部门是否存在
+        SysDept dept = sysDeptMapper.selectById(deptId);
+        if (dept == null) {
+            return Result.fail("部门不存在");
+        }
+
+        if (userIds == null || userIds.isEmpty()) {
+            return Result.fail("用户ID列表不能为空");
+        }
+
+        //批量更新用户的部门ID
+        LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(SysUser::getId, userIds);
+        updateWrapper.set(SysUser::getDeptId, deptId);
+
+        int updateCount = sysUserMapper.update(null, updateWrapper);
+
+        log.info("批量关联用户到部门成功, deptId: {}, userIds: {}, count: {}", deptId, userIds, updateCount);
+        return Result.success("成功关联" + updateCount + "个用户到部门", null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> batchAssignUsersByRoles(Long deptId, List<Long> roleIds) {
+        //校验部门是否存在
+        SysDept dept = sysDeptMapper.selectById(deptId);
+        if (dept == null) {
+            return Result.fail("部门不存在");
+        }
+
+        if (roleIds == null || roleIds.isEmpty()) {
+            return Result.fail("角色ID列表不能为空");
+        }
+
+        //查询角色关联的用户ID
+        LambdaQueryWrapper<SysUserRole> userRoleWrapper = new LambdaQueryWrapper<>();
+        userRoleWrapper.in(SysUserRole::getRoleId, roleIds);
+        List<SysUserRole> userRoles = sysUserRoleMapper.selectList(userRoleWrapper);
+
+        if (userRoles.isEmpty()) {
+            return Result.fail("所选角色下没有用户");
+        }
+
+        //提取用户ID列表
+        List<Long> userIds = userRoles.stream()
+                .map(SysUserRole::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        //批量更新用户的部门ID
+        LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(SysUser::getId, userIds);
+        updateWrapper.set(SysUser::getDeptId, deptId);
+
+        int updateCount = sysUserMapper.update(null, updateWrapper);
+
+        log.info("根据角色批量关联用户到部门成功, deptId: {}, roleIds: {}, userIds: {}, count: {}", deptId, roleIds, userIds, updateCount);
+        return Result.success("成功关联" + updateCount + "个用户到部门", null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> removeUsersFromDept(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Result.fail("用户ID列表不能为空");
+        }
+
+        //批量移除用户的部门关联（设置为null）
+        LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(SysUser::getId, userIds);
+        updateWrapper.set(SysUser::getDeptId, null);
+
+        int updateCount = sysUserMapper.update(null, updateWrapper);
+
+        log.info("移除用户与部门关联成功, userIds: {}, count: {}", userIds, updateCount);
+        return Result.success("成功移除" + updateCount + "个用户", null);
+    }
+
+    @Override
+    public List<Long> listUsersByDeptId(Long deptId) {
+        //查询部门下的用户ID列表
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getDeptId, deptId);
+        List<SysUser> users = sysUserMapper.selectList(wrapper);
+
+        return users.stream()
+                .map(SysUser::getId)
+                .collect(Collectors.toList());
     }
 }

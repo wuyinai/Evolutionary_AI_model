@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * 用法：动态模型对话服务类，根据两级配置和会话钉选动态创建ChatClient进行对话。
@@ -152,6 +155,9 @@ public class DynamicChatStrategy {
             // 使用AtomicReference收集响应内容
             AtomicReference<StringBuilder> responseBuilder = new AtomicReference<>(new StringBuilder());
 
+            // 用于捕获Token使用信息（通常在流式响应的最后一个事件中）
+            AtomicReference<Usage> lastUsage = new AtomicReference<>();
+
             // 最终的文档块列表（用于lambda表达式）
             final List<DocumentChunkDTO> finalRelevantChunks = relevantChunks;
 
@@ -169,28 +175,71 @@ public class DynamicChatStrategy {
                 }
             }
 
-            // 流式调用AI模型，并在流式响应过程中收集内容
+            // 使用 chatResponse() 流式调用AI模型，获取真实Token使用数据
             Flux<String> chatFlux = chatClient.prompt()
                     .system(systemPrompt != null ? systemPrompt : "")
                     .user(prompt)
                     .stream()
-                    .content()
-                    // 收集每个响应片段
-                    .doOnNext(chunk -> {
+                    .chatResponse()
+                    // 映射ChatResponse为文本内容，同时收集内容和Token使用信息
+                    .map(response -> {
+                        // 提取当前分片的文本内容
+                        String chunk = response.getResults().stream()
+                                .filter(r -> r.getOutput() != null && r.getOutput().getText() != null)
+                                .map(r -> r.getOutput().getText())
+                                .collect(Collectors.joining());
+
+                        // 累积响应内容
                         responseBuilder.get().append(chunk);
+
+                        // 捕获Token使用信息（通常在最后一个事件中非空）
+                        if (response.getMetadata() != null && response.getMetadata().getUsage() != null) {
+                            Usage chunkUsage = response.getMetadata().getUsage();
+                            if (chunkUsage.getTotalTokens() != null && chunkUsage.getTotalTokens() > 0) {
+                                lastUsage.set(chunkUsage);
+                                logger.info("捕获到Token使用数据: prompt={}, completion={}, total={}",
+                                        chunkUsage.getPromptTokens(), chunkUsage.getCompletionTokens(),
+                                        chunkUsage.getTotalTokens());
+                            }
+                        }
+
                         logger.debug("收到响应片段，长度: {}", chunk.length());
+                        return chunk;
                     })
-                    // 流式响应完成后，保存聊天日志和消息
+                    // 流式响应完成后，保存聊天日志和消息（包含真实Token数据）
                     .doOnComplete(() -> {
                         String responseContent = responseBuilder.get().toString();
                         long endTime = System.currentTimeMillis();
                         long latencyMs = endTime - startTime;
 
-                        logger.info("流式响应完成，总长度: {}, 耗时: {}ms", responseContent.length(), latencyMs);
+                        // 获取真实的Token使用数据
+                        Usage usage = lastUsage.get();
+                        int inputTokens;
+                        int outputTokens;
+                        int totalTokens;
 
-                        // 异步保存聊天日志和会话消息（包含文档块信息）
+                        if (usage != null) {
+                            // 使用AI模型API返回的真实Token数据
+                            inputTokens = usage.getPromptTokens() != null ? usage.getPromptTokens() : 0;
+                            outputTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens() : 0;
+                            totalTokens = usage.getTotalTokens() != null ? usage.getTotalTokens() : 0;
+                            logger.info("流式响应完成，使用API返回的真实Token数据");
+                        } else {
+                            // API未返回Token数据时，按字符数估算（4字符≈1 Token）
+                            inputTokens = prompt.length() / 4;
+                            outputTokens = responseContent.length() / 4;
+                            totalTokens = inputTokens + outputTokens;
+                            logger.warn("流式响应完成，AI模型未返回Usage元数据，使用字符数估算: 输入={}, 输出={}, 总计={}",
+                                    inputTokens, outputTokens, totalTokens);
+                        }
+
+                        logger.info("流式响应完成，总长度: {}, 耗时: {}ms, Token: 输入={}, 输出={}, 总计={}",
+                                responseContent.length(), latencyMs, inputTokens, outputTokens, totalTokens);
+
+                        // 异步保存聊天日志和会话消息（包含文档块信息和Token使用数据）
                         saveChatLogAndMessageAsync(request, modelConfig, providerConfig,
-                                prompt, responseContent, requestTime, latencyMs, finalRelevantChunks);
+                                prompt, responseContent, requestTime, latencyMs, finalRelevantChunks,
+                                inputTokens, outputTokens, totalTokens);
                     })
                     // 流式响应出错时，记录错误日志
                     .doOnError(error -> {
@@ -298,10 +347,14 @@ public class DynamicChatStrategy {
      * @param requestTime 请求时间
      * @param latencyMs 响应耗时
      * @param documentChunks 文档块信息列表
+     * @param inputTokens 输入Token数（从AI模型API返回）
+     * @param outputTokens 输出Token数（从AI模型API返回）
+     * @param totalTokens 总Token数（从AI模型API返回）
      */
     private void saveChatLogAndMessageAsync(ChatRequestDTO request, AiModelConfig modelConfig, 
             AiProviderConfig providerConfig, String requestContent, String responseContent, 
-            LocalDateTime requestTime, long latencyMs, List<DocumentChunkDTO> documentChunks) {
+            LocalDateTime requestTime, long latencyMs, List<DocumentChunkDTO> documentChunks,
+            int inputTokens, int outputTokens, int totalTokens) {
         try {
             // 创建或更新会话记录（确保会话表有数据）
             String conversationId = request.getConversationId();
@@ -334,6 +387,10 @@ public class DynamicChatStrategy {
             chatLog.setLatencyMs(latencyMs);
             chatLog.setRequestTime(requestTime);
             chatLog.setResponseTime(LocalDateTime.now());
+            // 设置真实Token使用数据
+            chatLog.setRequestTokens(inputTokens);
+            chatLog.setResponseTokens(outputTokens);
+            chatLog.setTotalTokens(totalTokens);
 
             // 异步保存聊天日志
             chatLogService.saveChatLogAsync(chatLog);
@@ -344,6 +401,7 @@ public class DynamicChatStrategy {
             userMessage.setRole("USER");
             userMessage.setContent(request.getMessage());
             userMessage.setConfigId(modelConfig.getId()); // 设置模型配置ID
+            userMessage.setTokens(inputTokens); // 记录输入Token数
 
             // 创建助手消息
             AiConversationMessage assistantMessage = new AiConversationMessage();
@@ -352,6 +410,7 @@ public class DynamicChatStrategy {
             assistantMessage.setContent(responseContent);
             assistantMessage.setLogId(chatLog.getId());
             assistantMessage.setConfigId(modelConfig.getId()); // 设置模型配置ID
+            assistantMessage.setTokens(outputTokens); // 记录输出Token数
             
             // 如果有文档块信息，序列化为JSON并设置到消息中
             if (documentChunks != null && !documentChunks.isEmpty()) {
@@ -370,13 +429,12 @@ public class DynamicChatStrategy {
             messages.add(assistantMessage);
             chatLogService.saveConversationMessagesAsync(messages);
 
-            // 更新会话统计信息
-            // 简化Token计算（按字符数估算）
-            int estimatedTokens = (requestContent.length() + responseContent.length()) / 4;
+            // 更新会话统计信息（使用AI模型返回的真实Token数）
             conversationService.updateStatistics(conversationId, 
-                    (long) estimatedTokens, BigDecimal.ZERO);
+                    (long) totalTokens, BigDecimal.ZERO);
 
-            logger.info("聊天日志和消息异步保存任务已提交，会话ID: {}", conversationId);
+            logger.info("聊天日志和消息异步保存任务已提交，会话ID: {}, Token: 输入={}, 输出={}, 总计={}",
+                    conversationId, inputTokens, outputTokens, totalTokens);
 
         } catch (Exception e) {
             logger.error("异步保存聊天日志和消息失败", e);

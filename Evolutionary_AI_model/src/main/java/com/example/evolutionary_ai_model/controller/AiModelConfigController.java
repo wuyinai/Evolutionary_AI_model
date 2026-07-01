@@ -9,6 +9,7 @@ import com.example.evolutionary_ai_model.entity.vo.AiModelConfigVO;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,7 @@ public class AiModelConfigController {
      * 返回数据: 用户的所有模型配置列表
      */
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('ai:config:list')")
     public Result<List<AiModelConfigVO>> list(@AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取模型配置列表请求");
 
@@ -58,6 +60,7 @@ public class AiModelConfigController {
      * 返回数据: 用户指定类型的模型配置列表
      */
     @GetMapping("/list/{modelType}")
+    @PreAuthorize("hasAuthority('ai:config:list')")
     public Result<List<AiModelConfigVO>> listByType(@AuthenticationPrincipal UserDetails userDetails,
                                                       @PathVariable String modelType) {
         logger.info("获取指定类型模型配置列表请求，模型类型: {}", modelType);
@@ -86,6 +89,7 @@ public class AiModelConfigController {
      * }
      */
     @PostMapping("/add")
+    @PreAuthorize("hasAuthority('ai:config:add')")
     public Result<Long> add(@AuthenticationPrincipal UserDetails userDetails,
                             @Valid @RequestBody AiModelConfigAddDTO dto) {
         try {
@@ -113,6 +117,7 @@ public class AiModelConfigController {
      * }
      */
     @PutMapping("/update")
+    @PreAuthorize("hasAuthority('ai:config:edit')")
     public Result<Void> update(@AuthenticationPrincipal UserDetails userDetails,
                                @Valid @RequestBody AiModelConfigUpdateDTO dto) {
         logger.info("更新模型配置请求，配置ID: {}", dto.getId());
@@ -136,6 +141,7 @@ public class AiModelConfigController {
      * 请求地址: DELETE /ai/config/delete/{id}
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasAuthority('ai:config:delete')")
     public Result<Void> delete(@AuthenticationPrincipal UserDetails userDetails,
                                @PathVariable Long id) {
         logger.info("删除模型配置请求，配置ID: {}", id);
@@ -159,6 +165,7 @@ public class AiModelConfigController {
      * 请求地址: PUT /ai/config/set-default/{id}
      */
     @PutMapping("/set-default/{id}")
+    @PreAuthorize("hasAuthority('ai:config:edit')")
     @OperationLog("设置默认模型")
     public Result<Void> setDefault(@AuthenticationPrincipal UserDetails userDetails,
                                    @PathVariable Long id) {
@@ -183,6 +190,7 @@ public class AiModelConfigController {
      * 请求地址: POST /ai/config/test/{id}
      */
     @PostMapping("/test/{id}")
+    @PreAuthorize("hasAuthority('ai:config:test')")
     @OperationLog("测试模型连接")
     public Result<String> test(@PathVariable Long id) {
         logger.info("测试模型连接请求，配置ID: {}", id);

@@ -8,6 +8,7 @@ import com.example.evolutionary_ai_model.service.AiProviderConfigService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,7 @@ public class AiProviderConfigController {
      * 返回数据: 用户的所有供应商配置列表
      */
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('ai:provider:list')")
     public Result<List<AiProviderConfigVO>> list(@AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取供应商配置列表请求");
 
@@ -62,6 +64,7 @@ public class AiProviderConfigController {
      * }
      */
     @PostMapping("/add")
+    @PreAuthorize("hasAuthority('ai:provider:add')")
     @OperationLog("添加供应商配置")
     public Result<Long> add(@AuthenticationPrincipal UserDetails userDetails,
                            @RequestBody AiProviderConfig config) {
@@ -86,6 +89,7 @@ public class AiProviderConfigController {
      * 请求地址: PUT /ai/provider-config/update
      */
     @PutMapping("/update")
+    @PreAuthorize("hasAuthority('ai:provider:edit')")
     public Result<Void> update(@AuthenticationPrincipal UserDetails userDetails,
                               @RequestBody AiProviderConfig config) {
         logger.info("更新供应商配置请求，配置ID: {}", config.getId());
@@ -109,6 +113,7 @@ public class AiProviderConfigController {
      * 请求地址: DELETE /ai/provider-config/delete/{id}
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasAuthority('ai:provider:delete')")
     public Result<Void> delete(@AuthenticationPrincipal UserDetails userDetails,
                               @PathVariable Long id) {
         logger.info("删除供应商配置请求，配置ID: {}", id);
@@ -132,6 +137,7 @@ public class AiProviderConfigController {
      * 请求地址: PUT /ai/provider-config/set-default/{id}
      */
     @PutMapping("/set-default/{id}")
+    @PreAuthorize("hasAuthority('ai:provider:edit')")
     @OperationLog("设置默认供应商配置")
     public Result<Void> setDefault(@AuthenticationPrincipal UserDetails userDetails,
                                    @PathVariable Long id) {
@@ -156,6 +162,7 @@ public class AiProviderConfigController {
      * 请求地址: POST /ai/provider-config/test/{id}
      */
     @PostMapping("/test/{id}")
+    @PreAuthorize("hasAuthority('ai:provider:test')")
     @OperationLog("测试供应商连接")
     public Result<String> test(@PathVariable Long id) {
         logger.info("测试供应商连接请求，配置ID: {}", id);

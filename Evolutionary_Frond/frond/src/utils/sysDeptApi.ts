@@ -160,5 +160,5 @@ export const assignUsersByRolesToDept = (deptId: string, roleIds: string[]): Pro
  * Remove user-department association
  */
 export const removeUsersFromDept = (userIds: string[]): Promise<ApiResponse<void>> => {
-  return request.delete('/system/dept/users', userIds)
+  return request.delete('/system/dept/users', { data: userIds })
 }

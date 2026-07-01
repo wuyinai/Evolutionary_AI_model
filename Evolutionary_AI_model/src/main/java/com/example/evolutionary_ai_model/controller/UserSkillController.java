@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,7 @@ public class UserSkillController {
      */
     @Operation(summary = "上传技能包", description = "上传ZIP格式的技能包，自动解压并校验SKILL.md")
     @PostMapping("/upload")
+    @PreAuthorize("hasAuthority('skill:upload')")
     @OperationLog("上传技能包")
     public Result<Long> uploadSkill(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -65,6 +67,7 @@ public class UserSkillController {
      */
     @Operation(summary = "获取技能列表", description = "获取当前用户的所有技能包")
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('skill:list')")
     public Result<List<UserSkillVO>> listSkills(@AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取技能列表请求");
 
@@ -86,6 +89,7 @@ public class UserSkillController {
      */
     @Operation(summary = "获取技能详情", description = "根据ID获取技能包详细信息")
     @GetMapping("/{skillId}")
+    @PreAuthorize("hasAuthority('skill:list')")
     public Result<UserSkillVO> getSkillDetail(@PathVariable Long skillId) {
         logger.info("获取技能详情请求，ID: {}", skillId);
 
@@ -108,6 +112,7 @@ public class UserSkillController {
      */
     @Operation(summary = "更新技能状态", description = "启用或禁用技能包")
     @PutMapping("/{skillId}/status")
+    @PreAuthorize("hasAuthority('skill:edit')")
     @OperationLog("更新技能状态")
     public Result<Void> updateSkillStatus(
             @PathVariable Long skillId,
@@ -131,6 +136,7 @@ public class UserSkillController {
      */
     @Operation(summary = "删除技能", description = "删除技能包及其文件")
     @DeleteMapping("/{skillId}")
+    @PreAuthorize("hasAuthority('skill:delete')")
     @OperationLog("删除技能")
     public Result<Void> deleteSkill(@PathVariable Long skillId) {
         logger.info("删除技能请求，ID: {}", skillId);

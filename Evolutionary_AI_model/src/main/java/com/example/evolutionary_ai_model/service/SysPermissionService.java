@@ -51,4 +51,9 @@ public interface SysPermissionService {
      * 更新角色的权限分配
      */
     Result<Void> updateRolePermissions(Long roleId, List<Long> permissionIds);
+
+    /**
+     * 获取当前登录用户的权限码列表（用于前端按钮权限控制）
+     */
+    Result<List<String>> getUserPermissionCodes();
 }

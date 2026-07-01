@@ -221,4 +221,26 @@ public class SysPermissionServiceImpl implements SysPermissionService {
         log.info("更新角色权限成功, roleId: {}, 权限数量: {}", roleId, permissionIds != null ? permissionIds.size() : 0);
         return Result.success("更新权限成功", null);
     }
+
+    @Override
+    public Result<List<String>> getUserPermissionCodes() {
+        //获取当前登录用户
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof LoginUserDetails)) {
+            return Result.fail("用户未登录");
+        }
+        LoginUserDetails loginUser = (LoginUserDetails) authentication.getPrincipal();
+        Long userId = loginUser.getUserId();
+
+        //查询用户有权限的权限列表
+        List<SysPermission> allPermissions = sysPermissionMapper.selectPermissionsByUserId(userId);
+
+        //提取所有权限编码（过滤掉空的）
+        List<String> permissionCodes = allPermissions.stream()
+                .map(SysPermission::getPermissionCode)
+                .filter(code -> code != null && !code.trim().isEmpty())
+                .collect(Collectors.toList());
+
+        return Result.success(permissionCodes);
+    }
 }

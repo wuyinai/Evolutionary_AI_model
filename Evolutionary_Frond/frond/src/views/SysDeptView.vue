@@ -3,7 +3,7 @@
     <div class="page-header">
       <h1 class="page-title">部门管理</h1>
       <div class="header-actions">
-        <button class="btn btn-primary" @click="openAddModal">
+        <button v-if="hasPermission('sys:dept:add')" class="btn btn-primary" @click="openAddModal">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -19,7 +19,7 @@
       <div class="dept-tree-panel">
         <div class="panel-header">
           <h3>部门架构</h3>
-          <button class="btn btn-secondary btn-sm" @click="loadDeptTree">
+          <button class="btn btn-secondary btn-sm" @click="() => loadDeptTree()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
               <path d="M3 3v5h5"></path>
@@ -106,14 +106,14 @@
           <div class="section-header">
             <h3>部门信息</h3>
             <div class="section-actions">
-              <button class="btn btn-secondary btn-sm" @click="openEditModal(selectedDept)">
+              <button v-if="hasPermission('sys:dept:edit')" class="btn btn-secondary btn-sm" @click="openEditModal(selectedDept)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
                 <span>编辑</span>
               </button>
-              <button class="btn btn-danger btn-sm" @click="handleDelete(selectedDept.id)">
+              <button v-if="hasPermission('sys:dept:delete')" class="btn btn-danger btn-sm" @click="handleDelete(selectedDept.id)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -171,7 +171,7 @@
           <div class="section-header">
             <h3>部门用户</h3>
             <div class="section-actions">
-              <button class="btn btn-primary btn-sm" @click="openAddUserModal">
+              <button v-if="hasPermission('sys:dept:edit')" class="btn btn-primary btn-sm" @click="openAddUserModal">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="8.5" cy="7" r="4"></circle>
@@ -180,7 +180,7 @@
                 </svg>
                 <span>添加用户</span>
               </button>
-              <button class="btn btn-secondary btn-sm" @click="openAddUserByRoleModal">
+              <button v-if="hasPermission('sys:dept:edit')" class="btn btn-secondary btn-sm" @click="openAddUserByRoleModal">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
@@ -189,7 +189,7 @@
                 </svg>
                 <span>按角色添加</span>
               </button>
-              <button class="btn btn-danger btn-sm" @click="handleRemoveSelectedUsers" :disabled="selectedUserIds.length === 0">
+              <button v-if="hasPermission('sys:dept:edit')" class="btn btn-danger btn-sm" @click="handleRemoveSelectedUsers" :disabled="selectedUserIds.length === 0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -244,7 +244,7 @@
                     </span>
                   </td>
                   <td class="action-col">
-                    <button class="btn-icon btn-danger-icon" @click="handleRemoveUser(user.id)" title="移除">
+                    <button v-if="hasPermission('sys:dept:edit')" class="btn-icon btn-danger-icon" @click="handleRemoveUser(user.id)" title="移除">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -514,6 +514,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { usePermission } from '@/composables/usePermission'
 import {
   getDeptTree,
   getDeptById,
@@ -531,6 +532,7 @@ import { getUserList, type SysUser } from '@/utils/sysUserApi'
 import { getRoleList, type SysRole } from '@/utils/sysRoleApi'
 
 const { showSuccess, showError, showWarning } = useToast()
+const { loadPermissions, hasPermission } = usePermission()
 
 // Tree Node Component
 const DeptTreeNode = defineComponent({
@@ -722,6 +724,7 @@ function filterTreeNodes(nodes: DeptTreeNode[], keyword: string): DeptTreeNode[]
 // Initialize
 onMounted(() => {
   loadDeptTree()
+  loadPermissions()
 })
 
 // Load Department Tree (supports optional filtering)

@@ -4,6 +4,7 @@ import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,7 @@ public class FileUploadController {
      * @return 头像访问URL
      */
     @PostMapping("/avatar")
+    @PreAuthorize("hasAuthority('upload:avatar')")
     public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
         try {
             // 校验文件是否为空

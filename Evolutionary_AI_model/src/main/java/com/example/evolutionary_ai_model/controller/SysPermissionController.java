@@ -42,6 +42,15 @@ public class SysPermissionController {
     }
 
     /**
+     * 获取当前登录用户的权限码列表（用于前端按钮权限控制）
+     * 不需要特定权限，登录即可访问
+     */
+    @GetMapping("/user-codes")
+    public Result<List<String>> getUserPermissionCodes() {
+        return sysPermissionService.getUserPermissionCodes();
+    }
+
+    /**
      * 添加菜单/权限
      */
     @PostMapping

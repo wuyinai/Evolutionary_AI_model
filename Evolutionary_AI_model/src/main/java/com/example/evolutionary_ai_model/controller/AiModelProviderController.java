@@ -5,6 +5,7 @@ import com.example.evolutionary_ai_model.service.AiModelProviderService;
 import com.example.evolutionary_ai_model.entity.vo.AiModelProviderVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class AiModelProviderController {
      * 返回数据: 所有启用的供应商列表，用于用户添加模型配置时选择
      */
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('ai:provider:list')")
     public Result<List<AiModelProviderVO>> list() {
         logger.info("获取供应商列表请求");
 
@@ -50,6 +52,7 @@ public class AiModelProviderController {
      * 请求地址: GET /ai/provider/{code}
      */
     @GetMapping("/{code}")
+    @PreAuthorize("hasAuthority('ai:provider:list')")
     public Result<AiModelProviderVO> getByCode(@PathVariable String code) {
         logger.info("获取供应商详情请求，编码: {}", code);
 

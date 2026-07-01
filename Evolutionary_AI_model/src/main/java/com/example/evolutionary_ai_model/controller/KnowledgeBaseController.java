@@ -8,6 +8,7 @@ import com.example.evolutionary_ai_model.security.LoginUserDetails;
 import com.example.evolutionary_ai_model.service.KnowledgeBaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class KnowledgeBaseController {
      * 请求地址: POST /knowledge/base
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('knowledge:base:add')")
     @OperationLog("创建知识库")
     public Result<Long> createKnowledgeBase(@AuthenticationPrincipal UserDetails userDetails,
                                             @RequestBody KnowledgeBase knowledgeBase) {
@@ -57,6 +59,7 @@ public class KnowledgeBaseController {
      * 请求地址: GET /knowledge/base/list
      */
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('knowledge:base:list')")
     public Result<List<KnowledgeBase>> listKnowledgeBases(@AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取知识库列表请求");
 
@@ -76,6 +79,7 @@ public class KnowledgeBaseController {
      * 请求地址: GET /knowledge/base/{knowledgeBaseId}
      */
     @GetMapping("/{knowledgeBaseId}")
+    @PreAuthorize("hasAuthority('knowledge:base:list')")
     public Result<KnowledgeBase> getKnowledgeBase(@PathVariable Long knowledgeBaseId) {
         logger.info("获取知识库详情请求，ID: {}", knowledgeBaseId);
 
@@ -96,6 +100,7 @@ public class KnowledgeBaseController {
      * 请求地址: PUT /knowledge/base
      */
     @PutMapping
+    @PreAuthorize("hasAuthority('knowledge:base:edit')")
     @OperationLog("更新知识库")
     public Result<Void> updateKnowledgeBase(@RequestBody KnowledgeBase knowledgeBase) {
         logger.info("更新知识库请求，ID: {}", knowledgeBase.getId());
@@ -115,6 +120,7 @@ public class KnowledgeBaseController {
      * 请求地址: DELETE /knowledge/base/{knowledgeBaseId}
      */
     @DeleteMapping("/{knowledgeBaseId}")
+    @PreAuthorize("hasAuthority('knowledge:base:delete')")
     @OperationLog("删除知识库")
     public Result<Void> deleteKnowledgeBase(@PathVariable Long knowledgeBaseId) {
         logger.info("删除知识库请求，ID: {}", knowledgeBaseId);
@@ -134,6 +140,7 @@ public class KnowledgeBaseController {
      * 请求地址: GET /knowledge/base/{knowledgeBaseId}/documents
      */
     @GetMapping("/{knowledgeBaseId}/documents")
+    @PreAuthorize("hasAuthority('knowledge:base:list')")
     public Result<List<KnowledgeDocument>> listDocuments(@PathVariable Long knowledgeBaseId) {
         logger.info("获取知识库文档列表请求，知识库ID: {}", knowledgeBaseId);
 

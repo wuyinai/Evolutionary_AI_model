@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -68,6 +69,7 @@ public class ChatController {
      * }
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("hasAuthority('chat:stream')")
     public Flux<String> stream(@AuthenticationPrincipal UserDetails userDetails,
                                @Valid @RequestBody ChatRequestDTO request) {
         logger.info("流式对话请求，消息长度: {}, configId: {}", 
@@ -107,6 +109,7 @@ public class ChatController {
      * 返回数据: 会话消息列表
      */
     @GetMapping("/messages/{conversationId}")
+    @PreAuthorize("hasAuthority('chat:list')")
     public Result<List<ConversationMessageVO>> getConversationMessages(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String conversationId) {
@@ -135,6 +138,7 @@ public class ChatController {
      * 注意：如果用户未登录（userId为null），返回空列表
      */
     @GetMapping("/conversations")
+    @PreAuthorize("hasAuthority('chat:list')")
     public Result<List<AiConversation>> getUserConversations(
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取用户会话列表");
@@ -167,6 +171,7 @@ public class ChatController {
      * 同时删除该会话的所有消息记录
      */
     @DeleteMapping("/conversations/{conversationId}")
+    @PreAuthorize("hasAuthority('chat:delete')")
     public Result<Void> deleteConversation(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String conversationId) {
@@ -239,6 +244,7 @@ public class ChatController {
      * 返回数据: AgentResultVO，包含最终答案和工具执行日志
      */
     @PostMapping("/agent/task/sync")
+    @PreAuthorize("hasAuthority('chat:agent:execute')")
     public Result<AgentResultVO> executeAgentTaskSync(@AuthenticationPrincipal UserDetails userDetails,
                                                       @Valid @RequestBody AgentRequestDTO request) {
         logger.info("同步执行Agent任务，任务描述: {}", request.getTask());
@@ -266,6 +272,7 @@ public class ChatController {
      * 返回数据: 工具名称列表
      */
     @GetMapping("/agent/tools")
+    @PreAuthorize("hasAuthority('chat:agent:list')")
     public Result<List<String>> getAvailableTools() {
         logger.info("获取可用的Agent工具列表");
 

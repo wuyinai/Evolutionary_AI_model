@@ -75,6 +75,13 @@ export const getUserMenuTree = (): Promise<ApiResponse<SysPermission[]>> => {
 }
 
 /**
+ * 获取当前登录用户的权限码列表（用于前端按钮权限控制）
+ */
+export const getUserPermissionCodes = (): Promise<ApiResponse<string[]>> => {
+  return request.get('/system/permission/user-codes')
+}
+
+/**
  * 添加菜单/权限
  */
 export const addPermission = (data: PermissionAddData): Promise<ApiResponse<void>> => {

@@ -6,6 +6,7 @@ import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
 import com.example.evolutionary_ai_model.service.KnowledgeDocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class KnowledgeDocumentController {
      * 参数: file - 上传的文件, embeddingModelId - 向量模型配置ID
      */
     @PostMapping("/upload")
+    @PreAuthorize("hasAuthority('knowledge:document:upload')")
     public Result<Long> uploadDocument(@AuthenticationPrincipal UserDetails userDetails,
                                         @RequestParam("file") MultipartFile file,
                                         @RequestParam("embeddingModelId") Long embeddingModelId) {
@@ -57,6 +59,7 @@ public class KnowledgeDocumentController {
      * 参数: file - 上传的文件, knowledgeBaseId - 知识库ID, embeddingModelId - 向量模型配置ID（可选）
      */
     @PostMapping("/upload-to-base")
+    @PreAuthorize("hasAuthority('knowledge:document:upload')")
     @OperationLog("上传文档到知识库")
     public Result<Long> uploadDocumentToKnowledgeBase(@AuthenticationPrincipal UserDetails userDetails,
                                                        @RequestParam("file") MultipartFile file,
@@ -81,6 +84,7 @@ public class KnowledgeDocumentController {
      * 请求地址: GET /knowledge/document/list
      */
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('knowledge:document:list')")
     public Result<List<KnowledgeDocument>> listDocuments(@AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取文档列表请求");
 
@@ -100,6 +104,7 @@ public class KnowledgeDocumentController {
      * 请求地址: GET /knowledge/document/status/{documentId}
      */
     @GetMapping("/status/{documentId}")
+    @PreAuthorize("hasAuthority('knowledge:document:list')")
     public Result<KnowledgeDocument> getDocumentStatus(@AuthenticationPrincipal UserDetails userDetails,
                                                         @PathVariable Long documentId) {
         logger.info("获取文档状态请求，文档ID: {}", documentId);
@@ -122,6 +127,7 @@ public class KnowledgeDocumentController {
      * 请求地址: DELETE /knowledge/document/{documentId}
      */
     @DeleteMapping("/{documentId}")
+    @PreAuthorize("hasAuthority('knowledge:document:delete')")
     @OperationLog("删除文档")
     public Result<Void> deleteDocument(@AuthenticationPrincipal UserDetails userDetails,
                                         @PathVariable Long documentId) {
@@ -142,6 +148,7 @@ public class KnowledgeDocumentController {
      * 请求地址: GET /knowledge/document/standalone
      */
     @GetMapping("/standalone")
+    @PreAuthorize("hasAuthority('knowledge:document:list')")
     public Result<List<KnowledgeDocument>> listStandaloneDocuments(@AuthenticationPrincipal UserDetails userDetails) {
         logger.info("获取独立文档列表请求");
 
@@ -161,6 +168,7 @@ public class KnowledgeDocumentController {
      * 请求地址: POST /knowledge/document/reprocess/{documentId}
      */
     @PostMapping("/reprocess/{documentId}")
+    @PreAuthorize("hasAuthority('knowledge:document:edit')")
     public Result<Void> reprocessDocument(@AuthenticationPrincipal UserDetails userDetails,
                                            @PathVariable Long documentId) {
         logger.info("重新处理文档请求，文档ID: {}", documentId);

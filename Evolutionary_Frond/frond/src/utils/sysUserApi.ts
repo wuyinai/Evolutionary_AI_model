@@ -40,6 +40,7 @@ export interface UserAddData {
   realName?: string
   email?: string
   phone?: string
+  avatar?: string
   gender?: number
   status?: number
   deptId?: string
@@ -54,6 +55,7 @@ export interface UserUpdateData {
   realName?: string
   email?: string
   phone?: string
+  avatar?: string
   gender?: number
   status?: number
   deptId?: string
@@ -101,4 +103,17 @@ export const updateUser = (data: UserUpdateData): Promise<ApiResponse<void>> => 
  */
 export const deleteUser = (userId: string): Promise<ApiResponse<void>> => {
   return request.delete(`/system/user/${userId}`)
+}
+
+/**
+ * 上传头像
+ */
+export const uploadAvatar = (file: File): Promise<ApiResponse<string>> => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/upload/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
 }

@@ -49,6 +49,7 @@ public class SysUserServiceImpl implements SysUserService {
         sysUser.setStatus(userAddDTO.getStatus() != null ? userAddDTO.getStatus() : 1);
         sysUser.setDeptId(userAddDTO.getDeptId());
         sysUser.setRemark(userAddDTO.getRemark());
+        sysUser.setAvatar(userAddDTO.getAvatar());
 
         //插入用户记录
         sysUserMapper.insert(sysUser);
@@ -82,6 +83,7 @@ public class SysUserServiceImpl implements SysUserService {
         sysUser.setStatus(userUpdateDTO.getStatus());
         sysUser.setDeptId(userUpdateDTO.getDeptId());
         sysUser.setRemark(userUpdateDTO.getRemark());
+        sysUser.setAvatar(userUpdateDTO.getAvatar());
 
         //更新用户记录
         sysUserMapper.updateById(sysUser);

@@ -74,7 +74,8 @@
     <div class="navigation-footer">
       <div class="user-profile" @click="toggleUserDropdown">
         <div class="user-avatar" :class="{ 'dropdown-active': showUserDropdown }">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <img v-if="userAvatar" :src="userAvatar" alt="头像" class="avatar-img" />
+          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
@@ -170,6 +171,7 @@ const userName = computed(() => userStore.userInfo?.username || userInfoCache.va
 // 备用：从 /profile/user-info 加载的完整用户信息
 const userInfoCache = ref<{ username?: string; email?: string } | null>(null)
 const userEmail = computed(() => userStore.userInfo?.email || userInfoCache.value?.email || '')
+const userAvatar = computed(() => userStore.userInfo?.avatar || userInfoCache.value?.avatar || '')
 
 const loadCurrentUser = async () => {
   if (userStore.userInfo?.username) return
@@ -476,6 +478,13 @@ onMounted(() => {
   color: var(--color-text-secondary);
   border: 2px solid var(--color-border);
   transition: all 0.2s ease-out;
+  overflow: hidden;
+}
+
+.user-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-avatar.dropdown-active {

@@ -48,4 +48,7 @@ public class UserAddDTO implements Serializable {
 
     //备注，选填
     private String remark;
+
+    //头像URL，选填
+    private String avatar;
 }

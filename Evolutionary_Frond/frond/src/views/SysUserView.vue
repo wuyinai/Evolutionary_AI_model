@@ -154,42 +154,75 @@
           </button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
-            <label>用户名 <span class="required">*</span></label>
-            <input type="text" v-model="userForm.username" placeholder="请输入用户名（3-20个字符）" :disabled="isEdit" />
+          <div class="form-grid">
+            <!-- 左侧：头像 -->
+            <div class="form-group form-avatar-group">
+              <label>头像</label>
+              <div class="avatar-upload">
+                <div class="avatar-preview">
+                  <img v-if="userForm.avatar" :src="userForm.avatar" alt="头像预览" class="avatar-img" />
+                  <div v-else class="avatar-placeholder">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>点击上传头像</span>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  ref="avatarInputRef"
+                  accept="image/jpeg,image/png,image/gif"
+                  style="display: none"
+                  @change="handleAvatarChange"
+                />
+                <button type="button" class="btn btn-secondary btn-sm" @click="triggerAvatarUpload">
+                  {{ userForm.avatar ? '更换头像' : '选择文件' }}
+                </button>
+                <button v-if="userForm.avatar" type="button" class="btn btn-text btn-sm" @click="removeAvatar">移除</button>
+              </div>
+            </div>
+
+            <!-- 右侧：字段区 -->
+            <div class="form-fields-grid">
+              <div class="form-group">
+                <label>用户名 <span class="required">*</span></label>
+                <input type="text" v-model="userForm.username" placeholder="请输入用户名（3-20个字符）" :disabled="isEdit" />
+              </div>
+              <div v-if="!isEdit" class="form-group">
+                <label>密码 <span class="required">*</span></label>
+                <input type="password" v-model="userForm.password" placeholder="请输入密码（6-20个字符，需包含字母和数字）" />
+              </div>
+              <div class="form-group">
+                <label>真实姓名</label>
+                <input type="text" v-model="userForm.realName" placeholder="请输入真实姓名" />
+              </div>
+              <div class="form-group">
+                <label>邮箱</label>
+                <input type="email" v-model="userForm.email" placeholder="请输入邮箱" />
+              </div>
+              <div class="form-group">
+                <label>手机号</label>
+                <input type="text" v-model="userForm.phone" placeholder="请输入手机号" />
+              </div>
+              <div class="form-group">
+                <label>性别</label>
+                <select v-model="userForm.gender">
+                  <option :value="0">未知</option>
+                  <option :value="1">男</option>
+                  <option :value="2">女</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>状态</label>
+                <select v-model="userForm.status">
+                  <option :value="1">正常</option>
+                  <option :value="0">禁用</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div v-if="!isEdit" class="form-group">
-            <label>密码 <span class="required">*</span></label>
-            <input type="password" v-model="userForm.password" placeholder="请输入密码（6-20个字符，需包含字母和数字）" />
-          </div>
-          <div class="form-group">
-            <label>真实姓名</label>
-            <input type="text" v-model="userForm.realName" placeholder="请输入真实姓名" />
-          </div>
-          <div class="form-group">
-            <label>邮箱</label>
-            <input type="email" v-model="userForm.email" placeholder="请输入邮箱" />
-          </div>
-          <div class="form-group">
-            <label>手机号</label>
-            <input type="text" v-model="userForm.phone" placeholder="请输入手机号" />
-          </div>
-          <div class="form-group">
-            <label>性别</label>
-            <select v-model="userForm.gender">
-              <option :value="0">未知</option>
-              <option :value="1">男</option>
-              <option :value="2">女</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>状态</label>
-            <select v-model="userForm.status">
-              <option :value="1">正常</option>
-              <option :value="0">禁用</option>
-            </select>
-          </div>
-          <div class="form-group">
+          <div class="form-group form-group-full">
             <label>备注</label>
             <textarea v-model="userForm.remark" placeholder="请输入备注"></textarea>
           </div>
@@ -214,6 +247,7 @@ import {
   addUser,
   updateUser,
   deleteUser,
+  uploadAvatar,
   type SysUser,
   type UserAddData,
   type UserUpdateData
@@ -231,6 +265,8 @@ const jumpPage = ref(1)
 const showUserModal = ref(false)
 const isEdit = ref(false)
 const savingUser = ref(false)
+const uploadingAvatar = ref(false)
+const avatarInputRef = ref<HTMLInputElement>()
 const userForm = ref({
   id: '',
   username: '',
@@ -238,10 +274,57 @@ const userForm = ref({
   realName: '',
   email: '',
   phone: '',
+  avatar: '',
   gender: 0,
   status: 1,
   remark: ''
 })
+
+/**
+ * 触发头像文件选择
+ */
+const triggerAvatarUpload = () => {
+  avatarInputRef.value?.click()
+}
+
+/**
+ * 处理头像文件选择
+ */
+const handleAvatarChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // 校验文件大小（最大2MB）
+  if (file.size > 2 * 1024 * 1024) {
+    showWarning('头像文件大小不能超过2MB')
+    return
+  }
+
+  uploadingAvatar.value = true
+  try {
+    const response = await uploadAvatar(file)
+    if (response.code === 200 && response.data) {
+      userForm.value.avatar = response.data
+      showSuccess('头像上传成功')
+    } else {
+      showError(response.message || '头像上传失败')
+    }
+  } catch (error) {
+    showError('头像上传失败')
+  } finally {
+    uploadingAvatar.value = false
+    // 清空input，允许重复选择同一文件
+    input.value = ''
+  }
+}
+
+/**
+ * 移除头像
+ */
+const removeAvatar = () => {
+  userForm.value.avatar = ''
+}
 
 const searchForm = ref({
   username: '',
@@ -332,6 +415,7 @@ const openAddModal = () => {
     realName: '',
     email: '',
     phone: '',
+    avatar: '',
     gender: 0,
     status: 1,
     remark: ''
@@ -348,6 +432,7 @@ const openEditModal = async (user: SysUser) => {
     realName: user.realName || '',
     email: user.email || '',
     phone: user.phone || '',
+    avatar: user.avatar || '',
     gender: user.gender || 0,
     status: user.status,
     remark: user.remark || ''
@@ -374,6 +459,7 @@ const handleSaveUser = async () => {
         realName: userForm.value.realName,
         email: userForm.value.email,
         phone: userForm.value.phone,
+        avatar: userForm.value.avatar || undefined,
         gender: userForm.value.gender,
         status: userForm.value.status,
         remark: userForm.value.remark
@@ -386,6 +472,7 @@ const handleSaveUser = async () => {
         realName: userForm.value.realName,
         email: userForm.value.email,
         phone: userForm.value.phone,
+        avatar: userForm.value.avatar || undefined,
         gender: userForm.value.gender,
         status: userForm.value.status,
         remark: userForm.value.remark
@@ -749,7 +836,7 @@ const formatTime = (time?: string) => {
 }
 
 .user-edit-modal {
-  max-width: 520px;
+  max-width: 640px;
 }
 
 .modal-header {
@@ -797,6 +884,31 @@ const formatTime = (time?: string) => {
 }
 
 /* ========== 表单样式 ========== */
+.form-grid {
+  display: flex;
+  gap: 24px;
+}
+
+.form-avatar-group {
+  flex-shrink: 0;
+  width: 160px;
+}
+
+.form-fields-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+.form-fields-grid .form-group:nth-last-child(2) {
+  margin-bottom: 0;
+}
+
+.form-group-full {
+  margin-top: 20px;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
@@ -856,6 +968,62 @@ const formatTime = (time?: string) => {
 .form-group textarea:focus {
   border-color: #4a7cf7;
   outline: none;
+}
+
+/* ========== 头像上传 ========== */
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px dashed #e0e0e8;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  position: relative;
+}
+
+.avatar-preview:hover {
+  border-color: #4a7cf7;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #8a8aa0;
+  font-size: 12px;
+  background-color: #fafafc;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 4px;
+  height: auto;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
 }
 
 /* ========== 按钮全局样式 ========== */

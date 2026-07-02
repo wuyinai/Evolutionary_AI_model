@@ -9,7 +9,7 @@ import { clearAuth } from '@/utils/auth'
 // 创建 axios 实例
 const request: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8234',
-  timeout: 10000,
+  timeout: 60000, // 扩大到60秒，以适应文件上传+RAG处理（解析、分块、向量化）的完整流程
   headers: {
     'Content-Type': 'application/json',
   },

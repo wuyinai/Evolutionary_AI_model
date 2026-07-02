@@ -30,11 +30,9 @@
             class="message-item"
             :class="message.role"
           >
-            <div class="message-content">
-              {{ message.content }}
-              <!-- 流式输出时显示闪烁的光标 -->
-              <span v-if="message.isStreaming" class="streaming-cursor">▊</span>
-            </div>
+            <div class="message-content" v-html="renderMarkdown(message.content)"></div>
+            <!-- 流式输出时显示闪烁的光标 -->
+            <span v-if="message.isStreaming" class="streaming-cursor">▊</span>
             <!-- 文档块展示组件 -->
             <DocumentChunksDisplay
               v-if="message.role === 'assistant' && message.documentChunks && message.documentChunks.length > 0"
@@ -115,6 +113,24 @@ import ModelSelector from '@/components/ModelSelector.vue'
 import KnowledgeSelector, { type KnowledgeSelection } from '@/components/KnowledgeSelector.vue'
 import DocumentChunksDisplay from '@/components/DocumentChunksDisplay.vue'
 import type { ChatMessageDTO } from '@/types/conversation'
+import { marked } from 'marked'
+
+// 配置marked选项
+marked.setOptions({
+  breaks: true, // GitHub风格换行
+  gfm: true,    // 启用GitHub风格Markdown
+})
+
+// 渲染Markdown为HTML
+const renderMarkdown = (content: string): string => {
+  if (!content) return ''
+  try {
+    return marked.parse(content) as string
+  } catch (e) {
+    console.error('Markdown渲染失败:', e)
+    return content
+  }
+}
 
 const conversationStore = useConversationStore()
 const modelConfigStore = useModelConfigStore()
@@ -410,6 +426,109 @@ const sendMessage = async () => {
   color: var(--color-text);
   line-height: 1.6;
   word-break: break-word;
+}
+
+/* Markdown 内容样式 */
+.message-content :deep(h1),
+.message-content :deep(h2),
+.message-content :deep(h3),
+.message-content :deep(h4) {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.message-content :deep(h1) { font-size: 1.5em; }
+.message-content :deep(h2) { font-size: 1.3em; }
+.message-content :deep(h3) { font-size: 1.15em; }
+.message-content :deep(h4) { font-size: 1.05em; }
+
+.message-content :deep(p) {
+  margin-bottom: 0.75em;
+}
+
+.message-content :deep(ul),
+.message-content :deep(ol) {
+  margin-bottom: 0.75em;
+  padding-left: 1.5em;
+}
+
+.message-content :deep(li) {
+  margin-bottom: 0.25em;
+}
+
+.message-content :deep(strong) {
+  font-weight: 600;
+}
+
+.message-content :deep(code) {
+  background-color: var(--color-background-soft);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.message-content :deep(pre) {
+  background-color: var(--color-background-soft);
+  padding: 1em;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+  border: 1px solid var(--color-border);
+}
+
+.message-content :deep(pre code) {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+.message-content :deep(blockquote) {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 0.75em;
+  color: var(--color-text-secondary);
+}
+
+.message-content :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1em 0;
+}
+
+.message-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 0.75em;
+  font-size: 0.9em;
+}
+
+.message-content :deep(th),
+.message-content :deep(td) {
+  border: 1px solid var(--color-border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+
+.message-content :deep(th) {
+  background-color: var(--color-background-soft);
+  font-weight: 600;
+}
+
+.message-content :deep(a) {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.message-content :deep(img) {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  margin: 0.5em 0;
 }
 
 /* 流式输出时的闪烁光标 */

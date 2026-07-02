@@ -47,6 +47,10 @@ public class MilvusConfig {
                     .uri(uri)
                     .token(token)
                     .dbName(databaseName)
+                    .connectTimeoutMs(30000)           // 连接超时30秒（默认10秒太短）
+                    .rpcDeadlineMs(120000)             // RPC调用超时120秒（批量向量插入需要较长时间）
+                    .keepAliveTimeMs(30000)            // 保活ping间隔30秒
+                    .keepAliveTimeoutMs(10000)         // 保活确认超时10秒
                     .build();
 
             // 创建客户端

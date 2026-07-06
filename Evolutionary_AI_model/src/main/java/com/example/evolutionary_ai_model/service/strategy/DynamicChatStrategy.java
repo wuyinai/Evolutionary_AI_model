@@ -259,13 +259,25 @@ public class DynamicChatStrategy {
         }
     }
 
+    /**
+     * 构建对话提示词（带滑动窗口策略）
+     * 滑动窗口策略：只保留最近10轮对话（即20条消息），防止上下文过长导致Token溢出
+     *
+     * @param message 当前用户消息
+     * @param history 历史消息列表
+     * @return 构建好的提示词
+     */
     public String buildPrompt(String message, List<ChatMessageDTO> history) {
         StringBuilder promptBuilder = new StringBuilder();
 
         // 添加历史消息上下文（如果有）
         if (history != null && !history.isEmpty()) {
+            // 滑动窗口策略：保留最近10轮对话（20条消息）
+            // 1轮对话 = 用户消息 + AI回复 = 2条消息
+            List<ChatMessageDTO> windowedHistory = applySlidingWindow(history, 10);
+
             promptBuilder.append("以下是之前的对话记录：\n");
-            for (ChatMessageDTO msg : history) {
+            for (ChatMessageDTO msg : windowedHistory) {
                 promptBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
             }
             promptBuilder.append("\n");
@@ -275,6 +287,39 @@ public class DynamicChatStrategy {
         promptBuilder.append("user: ").append(message);
 
         return promptBuilder.toString();
+    }
+
+    /**
+     * 应用滑动窗口策略，保留最近N轮对话
+     *
+     * @param history 历史消息列表
+     * @param rounds 保留的对话轮数（1轮 = 用户消息 + AI回复 = 2条消息）
+     * @return 截取后的历史消息列表
+     */
+    private List<ChatMessageDTO> applySlidingWindow(List<ChatMessageDTO> history, int rounds) {
+        if (history == null || history.isEmpty()) {
+            return history;
+        }
+
+        // 计算需要保留的消息数量（轮数 * 2）
+        int maxMessages = rounds * 2;
+
+        // 如果历史消息数量未超过窗口大小，直接返回
+        if (history.size() <= maxMessages) {
+            logger.debug("历史消息数量: {}, 未超过滑动窗口限制: {} 条", history.size(), maxMessages);
+            return history;
+        }
+
+        // 保留最近的消息（滑动窗口）
+        List<ChatMessageDTO> windowedHistory = history.subList(
+                history.size() - maxMessages,
+                history.size()
+        );
+
+        logger.info("应用滑动窗口策略，历史消息: {} 条，保留最近 {} 轮对话（{} 条消息）",
+                history.size(), rounds, maxMessages);
+
+        return windowedHistory;
     }
 
     /**
@@ -325,15 +370,15 @@ public class DynamicChatStrategy {
             logger.warn("模型配置缺少供应商配置关联，配置ID: {}", modelConfig.getId());
             throw new RuntimeException("模型配置未关联供应商配置，请先创建供应商配置");
         }
-        
+
         logger.info("通过providerConfigId获取供应商配置，配置ID: {}", modelConfig.getProviderConfigId());
         AiProviderConfig providerConfig = providerConfigService.getConfigById(modelConfig.getProviderConfigId());
-        
+
         if (providerConfig == null) {
             logger.warn("供应商配置不存在，配置ID: {}", modelConfig.getProviderConfigId());
             throw new RuntimeException("供应商配置不存在");
         }
-        
+
         return providerConfig;
     }
 
@@ -351,19 +396,19 @@ public class DynamicChatStrategy {
      * @param outputTokens 输出Token数（从AI模型API返回）
      * @param totalTokens 总Token数（从AI模型API返回）
      */
-    private void saveChatLogAndMessageAsync(ChatRequestDTO request, AiModelConfig modelConfig, 
-            AiProviderConfig providerConfig, String requestContent, String responseContent, 
-            LocalDateTime requestTime, long latencyMs, List<DocumentChunkDTO> documentChunks,
-            int inputTokens, int outputTokens, int totalTokens) {
+    private void saveChatLogAndMessageAsync(ChatRequestDTO request, AiModelConfig modelConfig,
+                                            AiProviderConfig providerConfig, String requestContent, String responseContent,
+                                            LocalDateTime requestTime, long latencyMs, List<DocumentChunkDTO> documentChunks,
+                                            int inputTokens, int outputTokens, int totalTokens) {
         try {
             // 创建或更新会话记录（确保会话表有数据）
             String conversationId = request.getConversationId();
-            String title = request.getMessage().length() > 50 ? 
+            String title = request.getMessage().length() > 50 ?
                     request.getMessage().substring(0, 50) + "..." : request.getMessage();
-            
+
             AiConversation conversation = conversationService.createOrUpdateConversation(
                     conversationId, request.getUserId(), title, modelConfig.getId());
-            
+
             // 更新conversationId（如果之前为null，现在有了新的conversationId）
             if (conversationId == null || conversationId.isEmpty()) {
                 conversationId = conversation.getConversationId();
@@ -411,7 +456,7 @@ public class DynamicChatStrategy {
             assistantMessage.setLogId(chatLog.getId());
             assistantMessage.setConfigId(modelConfig.getId()); // 设置模型配置ID
             assistantMessage.setTokens(outputTokens); // 记录输出Token数
-            
+
             // 如果有文档块信息，序列化为JSON并设置到消息中
             if (documentChunks != null && !documentChunks.isEmpty()) {
                 try {
@@ -430,7 +475,7 @@ public class DynamicChatStrategy {
             chatLogService.saveConversationMessagesAsync(messages);
 
             // 更新会话统计信息（使用AI模型返回的真实Token数）
-            conversationService.updateStatistics(conversationId, 
+            conversationService.updateStatistics(conversationId,
                     (long) totalTokens, BigDecimal.ZERO);
 
             logger.info("聊天日志和消息异步保存任务已提交，会话ID: {}, Token: 输入={}, 输出={}, 总计={}",
@@ -450,9 +495,9 @@ public class DynamicChatStrategy {
      * @param errorMessage 错误信息
      * @param requestTime 请求时间
      */
-    private void saveErrorLogAsync(ChatRequestDTO request, AiModelConfig modelConfig, 
-            AiProviderConfig providerConfig, String requestContent, String errorMessage, 
-            LocalDateTime requestTime) {
+    private void saveErrorLogAsync(ChatRequestDTO request, AiModelConfig modelConfig,
+                                   AiProviderConfig providerConfig, String requestContent, String errorMessage,
+                                   LocalDateTime requestTime) {
         try {
             // 创建错误日志
             AiChatLog errorLog = new AiChatLog();

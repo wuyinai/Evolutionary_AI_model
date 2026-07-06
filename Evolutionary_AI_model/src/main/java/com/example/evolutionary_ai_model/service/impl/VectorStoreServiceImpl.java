@@ -119,9 +119,10 @@ public class VectorStoreServiceImpl implements VectorStoreService {
         }
 
         try {
-            // 获取或创建EmbeddingModel和Collection
+            // 获取或创建EmbeddingModel
             EmbeddingModel embeddingModel = getOrCreateEmbeddingModel(embeddingModelId);
-            String collectionName = getOrCreateCollection(embeddingModelId);
+            // 每次RAG文件分块时创建新的Collection
+            String collectionName = createNewCollectionForEmbedding(embeddingModelId);
 
             // 缓存文档名称，避免重复查询
             Map<Long, String> documentNameCache = new HashMap<>();
@@ -366,6 +367,35 @@ public class VectorStoreServiceImpl implements VectorStoreService {
                 throw new RuntimeException("创建EmbeddingModel失败: " + e.getMessage());
             }
         });
+    }
+
+    /**
+     * 每次RAG文件分块时创建新的Collection（使用时间戳确保唯一性）
+     */
+    private String createNewCollectionForEmbedding(Long embeddingModelId) {
+        try {
+            // 获取向量模型配置
+            AiModelConfig modelConfig = modelConfigService.getConfigById(embeddingModelId);
+            if (modelConfig == null) {
+                throw new RuntimeException("向量模型配置不存在，ID: " + embeddingModelId);
+            }
+
+            // 生成唯一的Collection名称：embedding_model_{id}_{timestamp}
+            String collectionName = "embedding_model_" + embeddingModelId + "_" + System.currentTimeMillis();
+
+            // 创建Collection
+            createCollection(collectionName, modelConfig.getVectorDimensions());
+            logger.info("创建新的Collection成功，Collection: {}, 向量维度: {}",
+                    collectionName, modelConfig.getVectorDimensions());
+
+            // 更新collectionNameMap，确保删除等操作能定位到最新Collection
+            collectionNameMap.put(embeddingModelId, collectionName);
+
+            return collectionName;
+        } catch (Exception e) {
+            logger.error("创建新的Collection失败，向量模型ID: {}", embeddingModelId, e);
+            throw new RuntimeException("创建新的Collection失败: " + e.getMessage());
+        }
     }
 
     /**

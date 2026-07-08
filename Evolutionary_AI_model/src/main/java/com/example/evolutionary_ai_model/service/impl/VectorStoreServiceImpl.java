@@ -69,9 +69,9 @@ public class VectorStoreServiceImpl implements VectorStoreService {
     private String metricType;
 
     public VectorStoreServiceImpl(ProviderEmbeddingModelFactory embeddingModelFactory,
-                                   AiModelConfigService modelConfigService,
-                                   AiProviderConfigService providerConfigService,
-                                   @Lazy KnowledgeDocumentService knowledgeDocumentService) {
+                                  AiModelConfigService modelConfigService,
+                                  AiProviderConfigService providerConfigService,
+                                  @Lazy KnowledgeDocumentService knowledgeDocumentService) {
         this.embeddingModelFactory = embeddingModelFactory;
         this.modelConfigService = modelConfigService;
         this.providerConfigService = providerConfigService;
@@ -119,10 +119,9 @@ public class VectorStoreServiceImpl implements VectorStoreService {
         }
 
         try {
-            // 获取或创建EmbeddingModel
+            // 获取或创建EmbeddingModel和Collection
             EmbeddingModel embeddingModel = getOrCreateEmbeddingModel(embeddingModelId);
-            // 每次RAG文件分块时创建新的Collection
-            String collectionName = createNewCollectionForEmbedding(embeddingModelId);
+            String collectionName = getOrCreateCollection(embeddingModelId);
 
             // 缓存文档名称，避免重复查询
             Map<Long, String> documentNameCache = new HashMap<>();
@@ -232,21 +231,21 @@ public class VectorStoreServiceImpl implements VectorStoreService {
             // SearchResp.getSearchResults()返回List<List<SearchResult>>
             // 每个SearchResult包含entity(Map)和score(Float)
             List<List<SearchResult>> searchResults = searchResp.getSearchResults();
-            
+
             if (searchResults != null && !searchResults.isEmpty()) {
                 // 取第一个查询向量的结果（因为我们只有一个查询向量）
                 List<SearchResult> resultList = searchResults.get(0);
-                
+
                 if (resultList != null) {
                     for (SearchResult searchResult : resultList) {
                         // 获取entity中的字段数据
                         Map<String, Object> entity = searchResult.getEntity();
-                        
+
                         if (entity != null) {
                             String id = String.valueOf(entity.get("id"));
                             String content = String.valueOf(entity.get("content"));
                             Object metadataObj = entity.get("metadata");
-                            
+
                             // 解析metadata（处理多种格式）
                             Map<String, Object> metadata = new HashMap<>();
                             if (metadataObj instanceof String) {
@@ -267,14 +266,14 @@ public class VectorStoreServiceImpl implements VectorStoreService {
                                     logger.warn("无法解析metadata: {}", metadataObj);
                                 }
                             }
-                            
+
                             // 添加相似度得分到metadata
                             metadata.put("score", searchResult.getScore());
-                            
+
                             // 创建Document对象
                             Document doc = new Document(id, content, metadata);
                             results.add(doc);
-                            
+
                             logger.debug("检索到结果，ID: {}, 相似度得分: {}", id, searchResult.getScore());
                         }
                     }
@@ -370,35 +369,6 @@ public class VectorStoreServiceImpl implements VectorStoreService {
     }
 
     /**
-     * 每次RAG文件分块时创建新的Collection（使用时间戳确保唯一性）
-     */
-    private String createNewCollectionForEmbedding(Long embeddingModelId) {
-        try {
-            // 获取向量模型配置
-            AiModelConfig modelConfig = modelConfigService.getConfigById(embeddingModelId);
-            if (modelConfig == null) {
-                throw new RuntimeException("向量模型配置不存在，ID: " + embeddingModelId);
-            }
-
-            // 生成唯一的Collection名称：embedding_model_{id}_{timestamp}
-            String collectionName = "embedding_model_" + embeddingModelId + "_" + System.currentTimeMillis();
-
-            // 创建Collection
-            createCollection(collectionName, modelConfig.getVectorDimensions());
-            logger.info("创建新的Collection成功，Collection: {}, 向量维度: {}",
-                    collectionName, modelConfig.getVectorDimensions());
-
-            // 更新collectionNameMap，确保删除等操作能定位到最新Collection
-            collectionNameMap.put(embeddingModelId, collectionName);
-
-            return collectionName;
-        } catch (Exception e) {
-            logger.error("创建新的Collection失败，向量模型ID: {}", embeddingModelId, e);
-            throw new RuntimeException("创建新的Collection失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 获取或创建Collection
      */
     private String getOrCreateCollection(Long embeddingModelId) {
@@ -449,7 +419,7 @@ public class VectorStoreServiceImpl implements VectorStoreService {
         try {
             // 创建Schema
             CreateCollectionReq.CollectionSchema schema = milvusClient.createSchema();
-            
+
             // 添加字段到Schema
             schema.addField(AddFieldReq.builder()
                     .fieldName("id")

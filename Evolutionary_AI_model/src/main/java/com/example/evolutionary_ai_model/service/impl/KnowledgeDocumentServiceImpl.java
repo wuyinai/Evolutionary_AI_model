@@ -107,6 +107,9 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
         }
     }
 
+    //TODO 缺乏企业级的权限管理文档，需要将RAG分块与角色进行绑定，已达到知识库的权限管理
+    //TODO 只是用了向量检索缺乏BM25关键词检索。
+    //TODO 没有使用RRF计算权重的得分
     @Override
     @Transactional
     public void processDocument(Long documentId) {

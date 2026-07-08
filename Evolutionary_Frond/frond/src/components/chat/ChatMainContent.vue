@@ -433,8 +433,8 @@ const sendMessage = async () => {
 .message-content :deep(h2),
 .message-content :deep(h3),
 .message-content :deep(h4) {
-  margin-top: 1em;
-  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+  margin-bottom: 1em;
   font-weight: 600;
   color: var(--color-text);
 }
@@ -445,17 +445,21 @@ const sendMessage = async () => {
 .message-content :deep(h4) { font-size: 1.05em; }
 
 .message-content :deep(p) {
-  margin-bottom: 0.75em;
+  margin-bottom: 1em;
+  line-height: 1.8;
 }
 
 .message-content :deep(ul),
 .message-content :deep(ol) {
-  margin-bottom: 0.75em;
-  padding-left: 1.5em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 2em;
+  line-height: 1.8;
 }
 
 .message-content :deep(li) {
-  margin-bottom: 0.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.6;
 }
 
 .message-content :deep(strong) {
@@ -497,8 +501,10 @@ const sendMessage = async () => {
 
 .message-content :deep(hr) {
   border: none;
-  border-top: 1px solid var(--color-border);
-  margin: 1em 0;
+  border-top: 2px solid var(--color-border);
+  margin: 1.5em 0;
+  height: 0;
+  clear: both;
 }
 
 .message-content :deep(table) {

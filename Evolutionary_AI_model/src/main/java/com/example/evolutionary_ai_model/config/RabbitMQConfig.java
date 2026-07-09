@@ -60,7 +60,7 @@ public class RabbitMQConfig {
 
         // 启用发布返回机制，确保消息从交换机路由到队列失败时能被感知
         connectionFactory.setPublisherReturns(true);
-
+        connectionFactory.setCacheMode(CachingConnectionFactory.CacheMode.CONNECTION);
         // 设置连接缓存大小
         connectionFactory.setConnectionCacheSize(25);
 

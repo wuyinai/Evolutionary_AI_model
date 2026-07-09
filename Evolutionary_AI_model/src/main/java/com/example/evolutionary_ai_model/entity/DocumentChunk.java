@@ -41,6 +41,9 @@ public class DocumentChunk implements Serializable {
     // 分块内容
     private String content;
 
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long securityLabelId;
+
     // 向量ID（在向量数据库中的ID）
     private String vectorId;
 

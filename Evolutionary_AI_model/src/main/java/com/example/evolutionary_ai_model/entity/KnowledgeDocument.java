@@ -56,6 +56,9 @@ public class KnowledgeDocument implements Serializable {
     // 错误信息
     private String errorMessage;
 
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long securityLabelId;
+
     // 创建时间
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

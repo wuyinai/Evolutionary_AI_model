@@ -46,6 +46,9 @@ public class KnowledgeBase implements Serializable {
     // 知识库状态：ACTIVE-活跃 INACTIVE-停用
     private String status;
 
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long deptId;
+
     // 创建时间
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

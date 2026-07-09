@@ -14,7 +14,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: # 如果Redis有密码，请在此处填写
+      password: # 如果Redis有密码,请在此处填写
       database: 0
       timeout: 3000ms
       lettuce:
@@ -23,6 +23,42 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+  # RabbitMQ配置（消息队列）
+  rabbitmq:
+    host: localhost
+    port: 15672
+    username: root
+    password: 12345678
+    virtual-host: /
+    connection-timeout: 60000
+    # 消息确认模式: none(无确认), auto(自动确认), manual(手动确认)
+    acknowledge-mode: auto
+    # 消费者并发配置
+    concurrency: 3
+    max-concurrency: 10
+    prefetch: 1
+    # 消息重试配置
+    retry-enabled: true
+    retry-initial-interval: 1000
+    retry-max-interval: 10000
+    retry-multiplier: 2.0
+    retry-max-attempts: 3
+    # 生产者确认配置
+    publisher-confirm-type: correlated
+    publisher-returns: true
+  # Elasticsearch配置（全文搜索引擎）
+  elasticsearch:
+    host: localhost
+    port: 9200
+    username: # Elasticsearch用户名（可选）
+    password: # Elasticsearch密码（可选）
+    connection-timeout: 5000
+    socket-timeout: 30000
+    max-connections: 100
+    max-connections-per-route: 20
+    index-prefix: evolutionary_ai
+    ssl-enabled: false
+    basic-auth-enabled: false
   ai:
     openai:
       #API密钥，建议生产环境使用环境变量 ${OPENAI_API_KEY}

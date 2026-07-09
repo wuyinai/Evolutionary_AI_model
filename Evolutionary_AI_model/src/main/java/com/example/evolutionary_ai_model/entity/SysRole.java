@@ -1,6 +1,8 @@
 package com.example.evolutionary_ai_model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -37,6 +39,9 @@ public class SysRole implements Serializable {
 
     @TableLogic
     private Integer delFlag;
+    // 新增字段
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long securityLabelId;
 
     private String remark;
 }

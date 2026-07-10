@@ -12,7 +12,9 @@ export interface SysRole {
   roleCode: string
   roleSort: number
   dataScope: number
+  permControl: number
   status: number
+  securityLabelId?: string
   createBy?: string
   createTime?: string
   updateBy?: string
@@ -66,8 +68,10 @@ export const addRole = (data: {
   roleCode: string
   roleSort?: number
   dataScope?: number
+  permControl?: number
   status?: number
   remark?: string
+  securityLabelId?: string
 }): Promise<ApiResponse<void>> => {
   return request.post('/system/role', data)
 }
@@ -81,8 +85,10 @@ export const updateRole = (data: {
   roleCode?: string
   roleSort?: number
   dataScope?: number
+  permControl?: number
   status?: number
   remark?: string
+  securityLabelId?: string
 }): Promise<ApiResponse<void>> => {
   return request.put('/system/role', data)
 }

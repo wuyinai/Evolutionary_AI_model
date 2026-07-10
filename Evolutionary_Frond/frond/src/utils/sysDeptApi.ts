@@ -2,6 +2,7 @@
 
 import request from './request'
 import type { ApiResponse, PageResponse } from '@/types/api'
+import type { KnowledgeBase } from '@/types/knowledge'
 
 /**
  * System Department Interface
@@ -44,6 +45,7 @@ export interface DeptAddData {
   email?: string
   status?: number
   remark?: string
+  knowledgeBaseIds?: string[]
 }
 
 /**
@@ -61,6 +63,7 @@ export interface DeptUpdateData {
   email?: string
   status?: number
   remark?: string
+  knowledgeBaseIds?: string[]
 }
 
 /**
@@ -161,4 +164,18 @@ export const assignUsersByRolesToDept = (deptId: string, roleIds: string[]): Pro
  */
 export const removeUsersFromDept = (userIds: string[]): Promise<ApiResponse<void>> => {
   return request.delete('/system/dept/users', { data: userIds })
+}
+
+/**
+ * Get all knowledge bases (for department modal)
+ */
+export const getAllKnowledgeBases = (): Promise<ApiResponse<KnowledgeBase[]>> => {
+  return request.get('/knowledge/base/all')
+}
+
+/**
+ * Get knowledge base IDs associated with a department
+ */
+export const getDeptKnowledgeBaseIds = (deptId: string): Promise<ApiResponse<string[]>> => {
+  return request.get(`/system/dept/${deptId}/knowledge-bases`)
 }

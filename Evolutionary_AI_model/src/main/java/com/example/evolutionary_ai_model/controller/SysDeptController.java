@@ -142,4 +142,13 @@ public class SysDeptController {
     public Result<List<Long>> listUsersByDeptId(@PathVariable Long deptId) {
         return Result.success(sysDeptService.listUsersByDeptId(deptId));
     }
+
+    /**
+     * 查询部门关联的知识库ID列表
+     */
+    @GetMapping("/{deptId}/knowledge-bases")
+    @PreAuthorize("hasAuthority('sys:dept:list')")
+    public Result<List<Long>> listKnowledgeBaseIdsByDeptId(@PathVariable Long deptId) {
+        return Result.success(sysDeptService.listKnowledgeBaseIdsByDeptId(deptId));
+    }
 }

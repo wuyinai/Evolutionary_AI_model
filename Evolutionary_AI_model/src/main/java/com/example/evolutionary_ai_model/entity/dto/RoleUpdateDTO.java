@@ -32,9 +32,15 @@ public class RoleUpdateDTO implements Serializable {
     //数据范围
     private Integer dataScope;
 
+    //权限控制开关：0-禁用，1-启用（禁用时角色不受权限管控）
+    private Integer permControl;
+
     //状态：0-禁用，1-启用
     private Integer status;
 
     //备注
     private String remark;
+
+    //密级标签ID（角色可访问的最高密级）
+    private Long securityLabelId;
 }

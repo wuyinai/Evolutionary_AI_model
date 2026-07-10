@@ -108,4 +108,12 @@ public interface SysDeptService {
      * @return 用户ID列表
      */
     List<Long> listUsersByDeptId(Long deptId);
+
+    /**
+     * 查询部门关联的知识库ID列表
+     *
+     * @param deptId 部门ID
+     * @return 知识库ID列表
+     */
+    List<Long> listKnowledgeBaseIdsByDeptId(Long deptId);
 }

@@ -166,6 +166,33 @@
           </div>
         </div>
 
+        <!-- Knowledge Base Section -->
+        <div v-if="selectedDept" class="kb-section">
+          <div class="section-header">
+            <h3>关联知识库</h3>
+            <div class="section-actions">
+              <button class="btn btn-primary btn-sm" @click="handleSaveKbAssociation" :disabled="savingKbAssociation">
+                {{ savingKbAssociation ? '保存中...' : '保存关联' }}
+              </button>
+            </div>
+          </div>
+          <div class="kb-checkbox-grid">
+            <div v-if="loadingKnowledgeBases" class="loading-cell">
+              <div class="loading-spinner"></div>
+              <span>加载知识库...</span>
+            </div>
+            <div v-else-if="allKnowledgeBases.length === 0" class="empty-cell">
+              暂无知识库数据
+            </div>
+            <div v-else v-for="kb in allKnowledgeBases" :key="kb.id" class="kb-checkbox-item">
+              <label class="kb-checkbox-label">
+                <input type="checkbox" :value="kb.id" v-model="selectedKnowledgeBaseIds" />
+                <span class="kb-name">{{ kb.name }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- Users Section -->
         <div v-if="selectedDept" class="users-section">
           <div class="section-header">
@@ -525,11 +552,14 @@ import {
   assignUsersToDept,
   assignUsersByRolesToDept,
   removeUsersFromDept,
+  getAllKnowledgeBases,
+  getDeptKnowledgeBaseIds,
   type SysDept,
   type DeptTreeNode
 } from '@/utils/sysDeptApi'
 import { getUserList, type SysUser } from '@/utils/sysUserApi'
 import { getRoleList, type SysRole } from '@/utils/sysRoleApi'
+import type { KnowledgeBase } from '@/types/knowledge'
 
 const { showSuccess, showError, showWarning } = useToast()
 const { loadPermissions, hasPermission } = usePermission()
@@ -675,6 +705,12 @@ const leaderUserTotal = ref(0)
 const leaderSearchKeyword = ref('')
 const selectedLeaderUser = ref<SysUser | null>(null)
 
+// Knowledge Base Selection State
+const allKnowledgeBases = ref<KnowledgeBase[]>([])
+const selectedKnowledgeBaseIds = ref<string[]>([])
+const loadingKnowledgeBases = ref(false)
+const savingKbAssociation = ref(false)
+
 // Computed
 const userTotalPages = computed(() => Math.ceil(userTotal.value / userPageSize.value) || 1)
 const availableUserPages = computed(() => Math.ceil(availableUserTotal.value / availableUserSize.value) || 1)
@@ -802,6 +838,10 @@ const handleSelectDept = async (node: DeptTreeNode) => {
       // Load department users
       userCurrentPage.value = 1
       loadDeptUsers()
+      // Load knowledge base data
+      selectedKnowledgeBaseIds.value = []
+      loadKnowledgeBases()
+      loadDeptKnowledgeBaseIds(node.id)
     }
   } catch (error) {
     console.error('Get department detail failed:', error)
@@ -1240,6 +1280,55 @@ const handleSelectLeader = (user: SysUser) => {
 // Close Leader Select Modal
 const closeLeaderSelectModal = () => {
   showLeaderSelectModal.value = false
+}
+
+// Load all knowledge bases for selection
+const loadKnowledgeBases = async () => {
+  loadingKnowledgeBases.value = true
+  try {
+    const response = await getAllKnowledgeBases()
+    if (response.code === 200 && response.data) {
+      allKnowledgeBases.value = response.data
+    }
+  } catch (error) {
+    console.error('Load knowledge bases failed:', error)
+  } finally {
+    loadingKnowledgeBases.value = false
+  }
+}
+
+// Load knowledge base IDs associated with a department
+const loadDeptKnowledgeBaseIds = async (deptId: string) => {
+  try {
+    const response = await getDeptKnowledgeBaseIds(deptId)
+    if (response.code === 200 && response.data) {
+      selectedKnowledgeBaseIds.value = response.data
+    }
+  } catch (error) {
+    console.error('Load dept knowledge base IDs failed:', error)
+  }
+}
+
+// Save knowledge base association for the selected department
+const handleSaveKbAssociation = async () => {
+  if (!selectedDeptId.value) return
+  savingKbAssociation.value = true
+  try {
+    const response = await updateDept({
+      id: selectedDeptId.value,
+      knowledgeBaseIds: selectedKnowledgeBaseIds.value
+    })
+    if (response.code === 200) {
+      showSuccess('知识库关联保存成功')
+    } else {
+      showError(response.message || '保存失败')
+    }
+  } catch (error) {
+    console.error('Save KB association failed:', error)
+    showError('保存知识库关联失败')
+  } finally {
+    savingKbAssociation.value = false
+  }
 }
 
 // Format Time
@@ -2015,6 +2104,55 @@ const formatTime = (time?: string) => {
   font-size: 14px;
   color: #5c5c7a;
   margin-bottom: 16px;
+}
+
+/* ========== Knowledge Base Section (Right Panel) ========== */
+.kb-section {
+  padding: 20px 24px;
+  border-top: 1px solid #f0f0f5;
+}
+
+.kb-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  background-color: #fafafc;
+  border-radius: 8px;
+  padding: 16px 20px;
+  min-height: 60px;
+}
+
+.kb-checkbox-item {
+  display: flex;
+  align-items: center;
+}
+
+.kb-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background-color 0.15s;
+  width: 100%;
+}
+
+.kb-checkbox-label:hover {
+  background-color: #eef2ff;
+}
+
+.kb-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4a7cf7;
+  cursor: pointer;
+}
+
+.kb-checkbox-label .kb-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a2e;
 }
 
 /* ========== Mini Pagination ========== */

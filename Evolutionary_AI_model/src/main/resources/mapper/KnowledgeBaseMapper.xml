@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.evolutionary_ai_model.mapper.KnowledgeBaseMapper">
+
+    <select id="selectVisibleKnowledgeBases" resultType="com.example.evolutionary_ai_model.entity.KnowledgeBase">
+        SELECT DISTINCT kb.* FROM knowledge_base kb
+        LEFT JOIN knowledge_base_dept kbd ON kb.id = kbd.knowledge_base_id
+        WHERE kb.user_id = #{userId} OR kbd.dept_id = #{deptId}
+        ORDER BY kb.create_time DESC
+    </select>
+
+</mapper>

@@ -60,8 +60,10 @@ public class SysRoleServiceImpl implements SysRoleService {
         sysRole.setRoleCode(roleAddDTO.getRoleCode());
         sysRole.setRoleSort(roleAddDTO.getRoleSort() != null ? roleAddDTO.getRoleSort() : 0);
         sysRole.setDataScope(roleAddDTO.getDataScope() != null ? roleAddDTO.getDataScope() : 1);
+        sysRole.setPermControl(roleAddDTO.getPermControl() != null ? roleAddDTO.getPermControl() : 1);
         sysRole.setStatus(roleAddDTO.getStatus() != null ? roleAddDTO.getStatus() : 1);
         sysRole.setRemark(roleAddDTO.getRemark());
+        sysRole.setSecurityLabelId(roleAddDTO.getSecurityLabelId());
 
         //插入角色记录
         sysRoleMapper.insert(sysRole);
@@ -97,8 +99,10 @@ public class SysRoleServiceImpl implements SysRoleService {
         sysRole.setRoleCode(roleUpdateDTO.getRoleCode());
         sysRole.setRoleSort(roleUpdateDTO.getRoleSort());
         sysRole.setDataScope(roleUpdateDTO.getDataScope());
+        sysRole.setPermControl(roleUpdateDTO.getPermControl());
         sysRole.setStatus(roleUpdateDTO.getStatus());
         sysRole.setRemark(roleUpdateDTO.getRemark());
+        sysRole.setSecurityLabelId(roleUpdateDTO.getSecurityLabelId());
 
         //更新角色记录
         sysRoleMapper.updateById(sysRole);

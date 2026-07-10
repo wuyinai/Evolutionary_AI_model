@@ -44,8 +44,9 @@ public class KnowledgeBaseController {
 
         try {
             Long userId = getUserId(userDetails);
+            Long deptId = getDeptId(userDetails);
             knowledgeBase.setUserId(userId);
-            Long knowledgeBaseId = knowledgeBaseService.createKnowledgeBase(knowledgeBase);
+            Long knowledgeBaseId = knowledgeBaseService.createKnowledgeBase(knowledgeBase, deptId);
             logger.info("知识库创建成功，ID: {}", knowledgeBaseId);
             return Result.success("知识库创建成功", knowledgeBaseId);
         } catch (Exception e) {
@@ -55,7 +56,7 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 获取用户的知识库列表
+     * 获取用户可见的知识库列表（用户自己创建的或用户所在部门关联的）
      * 请求地址: GET /knowledge/base/list
      */
     @GetMapping("/list")
@@ -65,12 +66,31 @@ public class KnowledgeBaseController {
 
         try {
             Long userId = getUserId(userDetails);
-            List<KnowledgeBase> knowledgeBases = knowledgeBaseService.listByUserId(userId);
+            Long deptId = getDeptId(userDetails);
+            List<KnowledgeBase> knowledgeBases = knowledgeBaseService.listVisibleKnowledgeBases(userId, deptId);
             logger.info("获取知识库列表成功，数量: {}", knowledgeBases.size());
             return Result.success(knowledgeBases);
         } catch (Exception e) {
             logger.error("获取知识库列表失败", e);
             return Result.fail("获取知识库列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有知识库列表（用于部门管理勾选）
+     * 请求地址: GET /knowledge/base/all
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasAuthority('knowledge:base:list')")
+    public Result<List<KnowledgeBase>> listAllKnowledgeBases() {
+        logger.info("获取所有知识库列表请求");
+        try {
+            List<KnowledgeBase> list = knowledgeBaseService.list();
+            logger.info("获取所有知识库列表成功，数量: {}", list.size());
+            return Result.success(list);
+        } catch (Exception e) {
+            logger.error("获取所有知识库列表失败", e);
+            return Result.fail("获取所有知识库列表失败: " + e.getMessage());
         }
     }
 
@@ -163,4 +183,15 @@ public class KnowledgeBaseController {
         }
         throw new IllegalArgumentException("无法获取用户信息");
     }
+
+    /**
+     * 从UserDetails中获取当前用户所属部门ID
+     */
+    private Long getDeptId(UserDetails userDetails) {
+        if (userDetails instanceof LoginUserDetails) {
+            return ((LoginUserDetails) userDetails).getSysUser().getDeptId();
+        }
+        throw new IllegalArgumentException("无法获取用户信息");
+    }
+
 }

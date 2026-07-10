@@ -6,9 +6,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.dto.DeptAddDTO;
 import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
+import com.example.evolutionary_ai_model.entity.KnowledgeBaseDept;
 import com.example.evolutionary_ai_model.entity.SysDept;
 import com.example.evolutionary_ai_model.entity.SysUser;
 import com.example.evolutionary_ai_model.entity.SysUserRole;
+import com.example.evolutionary_ai_model.mapper.KnowledgeBaseDeptMapper;
 import com.example.evolutionary_ai_model.mapper.SysDeptMapper;
 import com.example.evolutionary_ai_model.mapper.SysUserMapper;
 import com.example.evolutionary_ai_model.mapper.SysUserRoleMapper;
@@ -34,6 +36,7 @@ public class SysDeptServiceImpl implements SysDeptService {
     private final SysDeptMapper sysDeptMapper;
     private final SysUserMapper sysUserMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
+    private final KnowledgeBaseDeptMapper knowledgeBaseDeptMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -76,6 +79,9 @@ public class SysDeptServiceImpl implements SysDeptService {
 
         //插入部门记录
         sysDeptMapper.insert(sysDept);
+
+        //保存知识库关联
+        saveKnowledgeBaseDeptRelations(sysDept.getId(), deptAddDTO.getKnowledgeBaseIds());
 
         //如果有负责人用户ID，将该用户添加到部门
         if (deptAddDTO.getLeaderId() != null) {
@@ -151,6 +157,9 @@ public class SysDeptServiceImpl implements SysDeptService {
 
         //更新部门记录
         sysDeptMapper.updateById(sysDept);
+
+        //更新知识库关联
+        saveKnowledgeBaseDeptRelations(deptUpdateDTO.getId(), deptUpdateDTO.getKnowledgeBaseIds());
 
         //如果修改了负责人用户ID，将该用户添加到部门
         if (deptUpdateDTO.getLeaderId() != null) {
@@ -355,5 +364,37 @@ public class SysDeptServiceImpl implements SysDeptService {
         return users.stream()
                 .map(SysUser::getId)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Long> listKnowledgeBaseIdsByDeptId(Long deptId) {
+        return knowledgeBaseDeptMapper.selectList(
+                new LambdaQueryWrapper<KnowledgeBaseDept>()
+                        .eq(KnowledgeBaseDept::getDeptId, deptId)
+        ).stream()
+                .map(KnowledgeBaseDept::getKnowledgeBaseId)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 保存部门与知识库的关联关系（先删后插）
+     */
+    private void saveKnowledgeBaseDeptRelations(Long deptId, List<Long> knowledgeBaseIds) {
+        //先删除该部门的所有知识库关联
+        knowledgeBaseDeptMapper.delete(
+                new LambdaQueryWrapper<KnowledgeBaseDept>()
+                        .eq(KnowledgeBaseDept::getDeptId, deptId)
+        );
+
+        //再插入新的关联
+        if (knowledgeBaseIds != null && !knowledgeBaseIds.isEmpty()) {
+            for (Long kbId : knowledgeBaseIds) {
+                KnowledgeBaseDept relation = new KnowledgeBaseDept();
+                relation.setDeptId(deptId);
+                relation.setKnowledgeBaseId(kbId);
+                knowledgeBaseDeptMapper.insert(relation);
+            }
+            log.info("部门知识库关联保存成功, deptId: {}, knowledgeBaseIds: {}", deptId, knowledgeBaseIds);
+        }
     }
 }

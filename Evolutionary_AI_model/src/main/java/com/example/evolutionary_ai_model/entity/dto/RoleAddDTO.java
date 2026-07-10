@@ -30,9 +30,15 @@ public class RoleAddDTO implements Serializable {
     //数据范围：1-全部数据，2-本部门数据，3-本部门及以下数据，4-仅本人数据，5-自定义
     private Integer dataScope;
 
+    //权限控制开关：0-禁用，1-启用（禁用时角色不受权限管控）
+    private Integer permControl;
+
     //状态：0-禁用，1-启用
     private Integer status;
 
     //备注
     private String remark;
+
+    //密级标签ID（角色可访问的最高密级）
+    private Long securityLabelId;
 }

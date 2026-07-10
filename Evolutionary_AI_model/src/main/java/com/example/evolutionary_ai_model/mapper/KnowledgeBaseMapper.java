@@ -3,6 +3,9 @@ package com.example.evolutionary_ai_model.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.evolutionary_ai_model.entity.KnowledgeBase;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 知识库Mapper接口，负责知识库数据的持久化操作。
@@ -10,4 +13,12 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBase> {
+
+    /**
+     * 查询用户可见的知识库列表（用户自己创建的或用户所在部门关联的）
+     * @param userId 用户ID
+     * @param deptId 部门ID
+     * @return 知识库列表
+     */
+    List<KnowledgeBase> selectVisibleKnowledgeBases(@Param("userId") Long userId, @Param("deptId") Long deptId);
 }

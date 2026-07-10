@@ -138,6 +138,22 @@
               </select>
             </div>
             <div class="form-group">
+              <label>密级标签</label>
+              <select v-model="roleForm.securityLabelId">
+                <option v-for="label in securityLabels" :key="label.id" :value="label.id">
+                  {{ label.labelName }}（{{ label.description }}）
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>权限控制</label>
+              <select v-model="roleForm.permControl">
+                <option :value="1">启用</option>
+                <option :value="0">禁用</option>
+              </select>
+              <span class="form-tip">禁用时该角色不受权限管控，默认拥有全部权限</span>
+            </div>
+            <div class="form-group">
               <label>备注</label>
               <textarea v-model="roleForm.remark" placeholder="请输入备注"></textarea>
             </div>
@@ -307,7 +323,10 @@ import {
   updateRolePermissions,
   type SysPermission
 } from '@/utils/sysPermissionApi'
-
+import {
+  getSecurityLabelList,
+  type SecurityLabel
+} from '@/utils/sysSecurityLabelApi'
 const { showSuccess, showError, showWarning } = useToast()
 const { loadPermissions, hasPermission } = usePermission()
 
@@ -333,7 +352,9 @@ const roleForm = ref({
   roleCode: '',
   roleSort: 0,
   status: 1,
-  remark: ''
+  remark: '',
+  securityLabelId: '1',
+  permControl: 1
 })
 
 const showUserModal = ref(false)
@@ -358,6 +379,7 @@ const allPermissions = ref<SysPermission[]>([])
 const permissionTree = ref<PermissionTreeNode[]>([])
 const selectedPermissionIds = ref<Set<string>>(new Set())
 const loadingPermissions = ref(false)
+const securityLabels = ref<SecurityLabel[]>([])
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 const availableUserPages = computed(() => Math.ceil(availableUserTotal.value / availableUserSize.value) || 1)
@@ -409,9 +431,13 @@ const openAddModal = () => {
     roleCode: '',
     roleSort: 0,
     status: 1,
-    remark: ''
+    remark: '',
+    securityLabelId: '1',
+    permControl: 1
   }
   showRoleModal.value = true
+  // 加载密级标签列表
+  loadSecurityLabels()
 }
 
 const openEditModal = async (role: SysRole) => {
@@ -422,10 +448,13 @@ const openEditModal = async (role: SysRole) => {
     roleCode: role.roleCode,
     roleSort: role.roleSort,
     status: role.status,
-    remark: role.remark || ''
+    remark: role.remark || '',
+    securityLabelId: role.securityLabelId || '1',
+    permControl: role.permControl ?? 1
   }
   showRoleModal.value = true
-  // 加载权限树和已分配的权限ID
+  // 加载密级标签列表和权限树
+  loadSecurityLabels()
   await loadAllPermissions()
   await loadRolePermissionIds(role.id)
 }
@@ -549,6 +578,18 @@ function collectAllIds(node: PermissionTreeNode): string[] {
   return ids
 }
 
+// 加载密级标签列表
+const loadSecurityLabels = async () => {
+  try {
+    const response = await getSecurityLabelList()
+    if (response.code === 200 && response.data) {
+      securityLabels.value = response.data
+    }
+  } catch (error) {
+    console.error('加载密级标签列表失败:', error)
+  }
+}
+
 const handleSaveRole = async () => {
   if (!roleForm.value.roleName || !roleForm.value.roleCode) {
     showWarning('请填写角色名称和角色编码')
@@ -565,7 +606,9 @@ const handleSaveRole = async () => {
         roleCode: roleForm.value.roleCode,
         roleSort: roleForm.value.roleSort,
         status: roleForm.value.status,
-        remark: roleForm.value.remark
+        remark: roleForm.value.remark,
+        securityLabelId: roleForm.value.securityLabelId || undefined,
+        permControl: roleForm.value.permControl
       })
     } else {
       response = await addRole({
@@ -573,7 +616,9 @@ const handleSaveRole = async () => {
         roleCode: roleForm.value.roleCode,
         roleSort: roleForm.value.roleSort,
         status: roleForm.value.status,
-        remark: roleForm.value.remark
+        remark: roleForm.value.remark,
+        securityLabelId: roleForm.value.securityLabelId || undefined,
+        permControl: roleForm.value.permControl
       })
     }
 
@@ -1103,6 +1148,14 @@ const formatTime = (time?: string) => {
 .required {
   color: #c62828;
   margin-left: 2px;
+}
+
+.form-tip {
+  display: block;
+  font-size: 12px;
+  color: #8a8aa0;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .form-group input,

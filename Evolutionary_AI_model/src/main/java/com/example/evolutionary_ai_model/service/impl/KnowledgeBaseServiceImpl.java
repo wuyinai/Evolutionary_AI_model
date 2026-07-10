@@ -2,7 +2,9 @@ package com.example.evolutionary_ai_model.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.evolutionary_ai_model.entity.KnowledgeBase;
+import com.example.evolutionary_ai_model.entity.KnowledgeBaseDept;
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
+import com.example.evolutionary_ai_model.mapper.KnowledgeBaseDeptMapper;
 import com.example.evolutionary_ai_model.mapper.KnowledgeBaseMapper;
 import com.example.evolutionary_ai_model.mapper.DocumentChunkMapper;
 import com.example.evolutionary_ai_model.mapper.KnowledgeDocumentMapper;
@@ -35,8 +37,12 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     @Autowired
     private VectorStoreService vectorStoreService;
 
+    @Autowired
+    private KnowledgeBaseDeptMapper knowledgeBaseDeptMapper;
+
     @Override
-    public Long createKnowledgeBase(KnowledgeBase knowledgeBase) {
+    @Transactional
+    public Long createKnowledgeBase(KnowledgeBase knowledgeBase, Long deptId) {
         logger.info("创建知识库，用户ID: {}, 名称: {}", knowledgeBase.getUserId(), knowledgeBase.getName());
         
         // 设置默认值
@@ -52,6 +58,16 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
         
         save(knowledgeBase);
         logger.info("知识库创建成功，ID: {}", knowledgeBase.getId());
+
+        // 自动创建知识库与部门的关联记录
+        if (deptId != null) {
+            KnowledgeBaseDept deptRelation = new KnowledgeBaseDept();
+            deptRelation.setKnowledgeBaseId(knowledgeBase.getId());
+            deptRelation.setDeptId(deptId);
+            knowledgeBaseDeptMapper.insert(deptRelation);
+            logger.info("知识库-部门关联记录创建成功，知识库ID: {}, 部门ID: {}", knowledgeBase.getId(), deptId);
+        }
+
         return knowledgeBase.getId();
     }
 
@@ -61,6 +77,11 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
                 .eq(KnowledgeBase::getUserId, userId)
                 .orderByDesc(KnowledgeBase::getCreateTime)
                 .list();
+    }
+
+    @Override
+    public List<KnowledgeBase> listVisibleKnowledgeBases(Long userId, Long deptId) {
+        return baseMapper.selectVisibleKnowledgeBases(userId, deptId);
     }
 
     @Override

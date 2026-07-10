@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 用法：修改部门时的请求参数封装
@@ -49,4 +50,7 @@ public class DeptUpdateDTO implements Serializable {
 
     //备注
     private String remark;
+
+    //关联的知识库ID列表
+    private List<Long> knowledgeBaseIds;
 }

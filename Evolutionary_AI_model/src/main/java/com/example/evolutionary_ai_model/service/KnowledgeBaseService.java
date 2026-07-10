@@ -14,9 +14,10 @@ public interface KnowledgeBaseService extends IService<KnowledgeBase> {
     /**
      * 创建知识库
      * @param knowledgeBase 知识库信息
+     * @param deptId 创建人所属部门ID（用于建立知识库-部门关联）
      * @return 知识库ID
      */
-    Long createKnowledgeBase(KnowledgeBase knowledgeBase);
+    Long createKnowledgeBase(KnowledgeBase knowledgeBase, Long deptId);
 
     /**
      * 获取用户的知识库列表
@@ -24,6 +25,14 @@ public interface KnowledgeBaseService extends IService<KnowledgeBase> {
      * @return 知识库列表
      */
     List<KnowledgeBase> listByUserId(Long userId);
+
+    /**
+     * 获取用户可见的知识库列表（用户自己创建的或用户所在部门关联的）
+     * @param userId 用户ID
+     * @param deptId 部门ID
+     * @return 知识库列表
+     */
+    List<KnowledgeBase> listVisibleKnowledgeBases(Long userId, Long deptId);
 
     /**
      * 获取知识库详情（包含文档列表）

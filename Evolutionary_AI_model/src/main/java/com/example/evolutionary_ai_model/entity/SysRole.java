@@ -25,6 +25,12 @@ public class SysRole implements Serializable {
 
     private Integer dataScope;
 
+    /**
+     * 权限控制开关：0-禁用，1-启用
+     * 禁用时该角色不受权限管控，默认拥有全部权限
+     */
+    private Integer permControl;
+
     private Integer status;
 
     private String createBy;

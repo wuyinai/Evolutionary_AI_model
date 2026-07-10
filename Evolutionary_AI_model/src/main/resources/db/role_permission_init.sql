@@ -54,8 +54,8 @@ VALUES
 -- =============================================
 -- 10. 创建管理员角色（如果不存在）
 -- =============================================
-INSERT INTO `sys_role` (`id`, `role_name`, `role_code`, `role_sort`, `data_scope`, `status`, `create_by`, `remark`)
-SELECT 1, '超级管理员', 'admin', 1, 1, 1, 'admin', '超级管理员角色'
+INSERT INTO `sys_role` (`id`, `role_name`, `role_code`, `role_sort`, `data_scope`, `perm_control`, `status`, `create_by`, `remark`)
+SELECT 1, '超级管理员', 'admin', 1, 1, 1, 1, 'admin', '超级管理员角色'
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `sys_role` WHERE `role_code` = 'admin');
 

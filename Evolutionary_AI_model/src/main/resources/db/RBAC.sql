@@ -39,6 +39,7 @@ CREATE TABLE `sys_role` (
                             `role_code` VARCHAR(100) NOT NULL COMMENT '角色编码',
                             `role_sort` INT DEFAULT 0 COMMENT '显示顺序',
                             `data_scope` TINYINT DEFAULT 1 COMMENT '数据范围：1-全部数据，2-本部门数据，3-本部门及以下数据，4-仅本人数据，5-自定义',
+                            `perm_control` TINYINT NOT NULL DEFAULT 1 COMMENT '权限控制开关：0-禁用，1-启用',
                             `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
                             `create_by` VARCHAR(50) DEFAULT NULL COMMENT '创建人',
                             `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -130,7 +131,21 @@ CREATE TABLE `sys_dept` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统部门表';
 
 -- =============================================
--- 7. 操作日志表
+-- 7. 知识库与部门关联表
+-- =============================================
+CREATE TABLE IF NOT EXISTS `knowledge_base_dept` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `knowledge_base_id` BIGINT NOT NULL COMMENT '知识库ID',
+    `dept_id` BIGINT NOT NULL COMMENT '部门ID',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_kb_dept` (`knowledge_base_id`, `dept_id`),
+    KEY `idx_knowledge_base_id` (`knowledge_base_id`),
+    KEY `idx_dept_id` (`dept_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库与部门关联表';
+
+-- =============================================
+-- 8. 操作日志表
 -- =============================================
 CREATE TABLE `sys_operation_log` (
                                      `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '日志ID',
@@ -156,7 +171,7 @@ CREATE TABLE `sys_operation_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志表';
 
 -- =============================================
--- 8. 登录日志表
+-- 9. 登录日志表
 -- =============================================
 CREATE TABLE `sys_login_log` (
                                  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '日志ID',

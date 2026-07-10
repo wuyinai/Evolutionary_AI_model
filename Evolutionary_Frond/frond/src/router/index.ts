@@ -99,6 +99,12 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'system/Approval',
+          name: 'sysApproval',
+          component: () => import('../views/SysApprovalView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'profile',
           name: 'profile',
           component: () => import('../views/ProfileView.vue'),

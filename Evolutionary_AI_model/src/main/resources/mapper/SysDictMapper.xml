@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.evolutionary_ai_model.mapper.SysDictMapper">
+
+    <select id="selectByDictType" resultType="com.example.evolutionary_ai_model.entity.SysDict">
+        SELECT * FROM sys_dict
+        WHERE dict_type = #{dictType} AND del_flag = 0 AND status = 1
+        ORDER BY sort ASC
+    </select>
+
+    <select id="selectByDictTypeAndCode" resultType="com.example.evolutionary_ai_model.entity.SysDict">
+        SELECT * FROM sys_dict
+        WHERE dict_type = #{dictType} AND dict_code = #{dictCode} AND del_flag = 0 AND status = 1
+    </select>
+
+</mapper>

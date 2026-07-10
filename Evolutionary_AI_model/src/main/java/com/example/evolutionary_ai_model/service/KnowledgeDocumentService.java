@@ -16,9 +16,10 @@ public interface KnowledgeDocumentService extends IService<KnowledgeDocument> {
      * @param file 上传的文件
      * @param userId 用户ID
      * @param embeddingModelId 向量模型配置ID
+     * @param securityLabelId 密级标签ID（必选）
      * @return 文档ID
      */
-    Long uploadAndProcessDocument(MultipartFile file, Long userId, Long embeddingModelId);
+    Long uploadAndProcessDocument(MultipartFile file, Long userId, Long embeddingModelId, Long securityLabelId);
 
     /**
      * 上传文档到指定知识库
@@ -26,9 +27,10 @@ public interface KnowledgeDocumentService extends IService<KnowledgeDocument> {
      * @param userId 用户ID
      * @param knowledgeBaseId 知识库ID
      * @param embeddingModelId 向量模型配置ID（可选，使用知识库默认模型）
+     * @param securityLabelId 密级标签ID（必选）
      * @return 文档ID
      */
-    Long uploadDocumentToKnowledgeBase(MultipartFile file, Long userId, Long knowledgeBaseId, Long embeddingModelId);
+    Long uploadDocumentToKnowledgeBase(MultipartFile file, Long userId, Long knowledgeBaseId, Long embeddingModelId, Long securityLabelId);
 
     /**
      * 处理文档（解析、分块、向量化）

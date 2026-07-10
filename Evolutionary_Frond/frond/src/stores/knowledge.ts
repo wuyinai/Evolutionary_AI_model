@@ -131,9 +131,9 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   }
   
   // 上传文档到知识库
-  const uploadDocument = async (file: File, knowledgeBaseId: string, embeddingModelId?: string) => {
+  const uploadDocument = async (file: File, knowledgeBaseId: string, embeddingModelId?: string, securityLabelId?: string) => {
     try {
-      const response = await uploadDocumentToKnowledgeBase(file, knowledgeBaseId, embeddingModelId)
+      const response = await uploadDocumentToKnowledgeBase(file, knowledgeBaseId, embeddingModelId, securityLabelId)
       if (response.code === 200) {
         // 刷新文档列表
         await loadKnowledgeBaseDocuments(knowledgeBaseId)

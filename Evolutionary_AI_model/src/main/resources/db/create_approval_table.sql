@@ -33,6 +33,7 @@ CREATE TABLE `sys_approval` (
 CREATE TABLE `sys_dict` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '字典ID',
     `dict_type` VARCHAR(100) NOT NULL COMMENT '字典类型',
+    `dict_name` VARCHAR(100) DEFAULT NULL COMMENT '字典名称（中文名称）',
     `dict_code` VARCHAR(100) NOT NULL COMMENT '字典编码',
     `dict_label` VARCHAR(200) NOT NULL COMMENT '字典标签',
     `dict_value` VARCHAR(200) DEFAULT NULL COMMENT '字典值',
@@ -53,18 +54,18 @@ CREATE TABLE `sys_dict` (
 -- =============================================
 -- 初始化审批类型字典数据
 -- =============================================
-INSERT INTO `sys_dict` (`dict_type`, `dict_code`, `dict_label`, `dict_value`, `sort`, `status`, `create_by`, `remark`) VALUES
-('approval_type', 'role_create', '角色创建审批', 'role_create', 1, 1, 'system', '角色创建审批'),
-('approval_type', 'role_user_auth', '角色用户授权审批', 'role_user_auth', 2, 1, 'system', '角色用户授权审批'),
-('approval_type', 'dept_user_change', '部门用户变动审批', 'dept_user_change', 3, 1, 'system', '部门用户变动审批');
+INSERT INTO `sys_dict` (`dict_type`, `dict_name`, `dict_code`, `dict_label`, `dict_value`, `sort`, `status`, `create_by`, `remark`) VALUES
+('approval_type', '审批类型', 'role_create', '角色创建审批', 'role_create', 1, 1, 'system', '角色创建审批'),
+('approval_type', '审批类型', 'role_user_auth', '角色用户授权审批', 'role_user_auth', 2, 1, 'system', '角色用户授权审批'),
+('approval_type', '审批类型', 'dept_user_change', '部门用户变动审批', 'dept_user_change', 3, 1, 'system', '部门用户变动审批');
 
 -- =============================================
 -- 初始化审批状态字典数据
 -- =============================================
-INSERT INTO `sys_dict` (`dict_type`, `dict_code`, `dict_label`, `dict_value`, `sort`, `status`, `create_by`, `remark`) VALUES
-('approval_status', 'pending', '待审批', '0', 1, 1, 'system', '待审批'),
-('approval_status', 'approved', '已通过', '1', 2, 1, 'system', '已通过'),
-('approval_status', 'rejected', '已拒绝', '2', 3, 1, 'system', '已拒绝');
+INSERT INTO `sys_dict` (`dict_type`, `dict_name`, `dict_code`, `dict_label`, `dict_value`, `sort`, `status`, `create_by`, `remark`) VALUES
+('approval_status', '审批状态', 'pending', '待审批', '0', 1, 1, 'system', '待审批'),
+('approval_status', '审批状态', 'approved', '已通过', '1', 2, 1, 'system', '已通过'),
+('approval_status', '审批状态', 'rejected', '已拒绝', '2', 3, 1, 'system', '已拒绝');
 
 INSERT INTO `sys_permission` (
     `parent_id`,

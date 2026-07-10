@@ -52,11 +52,13 @@ export const getKnowledgeBaseDocuments = (knowledgeBaseId: string): Promise<ApiR
 export const uploadDocumentToKnowledgeBase = (
   file: File,
   knowledgeBaseId: string,
-  embeddingModelId?: string
+  embeddingModelId?: string,
+  securityLabelId?: string
 ): Promise<ApiResponse<string>> => {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('knowledgeBaseId', knowledgeBaseId)
+  formData.append('securityLabelId', securityLabelId || '')
   if (embeddingModelId) {
     formData.append('embeddingModelId', embeddingModelId)
   }

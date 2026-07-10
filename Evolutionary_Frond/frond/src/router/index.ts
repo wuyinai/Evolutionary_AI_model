@@ -105,6 +105,12 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'system/dict',
+          name: 'sysDict',
+          component: () => import('../views/SysDictView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'profile',
           name: 'profile',
           component: () => import('../views/ProfileView.vue'),

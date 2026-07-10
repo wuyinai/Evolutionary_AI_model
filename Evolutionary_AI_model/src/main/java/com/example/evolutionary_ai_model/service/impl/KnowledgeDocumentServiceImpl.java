@@ -52,14 +52,14 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
 
     @Override
     @Transactional
-    public Long uploadAndProcessDocument(MultipartFile file, Long userId, Long embeddingModelId) {
-        return uploadDocumentToKnowledgeBase(file, userId, null, embeddingModelId);
+    public Long uploadAndProcessDocument(MultipartFile file, Long userId, Long embeddingModelId, Long securityLabelId) {
+        return uploadDocumentToKnowledgeBase(file, userId, null, embeddingModelId, securityLabelId);
     }
 
     @Override
     @Transactional
-    public Long uploadDocumentToKnowledgeBase(MultipartFile file, Long userId, Long knowledgeBaseId, Long embeddingModelId) {
-        logger.info("开始上传文档，用户ID: {}, 知识库ID: {}, 文件名: {}", userId, knowledgeBaseId, file.getOriginalFilename());
+    public Long uploadDocumentToKnowledgeBase(MultipartFile file, Long userId, Long knowledgeBaseId, Long embeddingModelId, Long securityLabelId) {
+        logger.info("开始上传文档，用户ID: {}, 知识库ID: {}, 文件名: {}, 密级ID: {}", userId, knowledgeBaseId, file.getOriginalFilename(), securityLabelId);
 
         // 如果指定了知识库，获取知识库的默认向量模型
         if (knowledgeBaseId != null && embeddingModelId == null) {
@@ -77,6 +77,7 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
         document.setFileType(documentParserService.getFileType(file.getOriginalFilename()));
         document.setFileSize(file.getSize());
         document.setEmbeddingModelId(embeddingModelId);
+        document.setSecurityLabelId(securityLabelId);
         document.setStatus("PENDING");
         document.setChunkCount(0);
         document.setStoragePath(""); // 先设置空字符串，后续更新

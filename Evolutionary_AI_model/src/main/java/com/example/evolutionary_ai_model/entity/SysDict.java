@@ -22,6 +22,9 @@ public class SysDict implements Serializable {
     // 字典类型
     private String dictType;
 
+    // 字典名称（中文名称）
+    private String dictName;
+
     // 字典编码
     private String dictCode;
 

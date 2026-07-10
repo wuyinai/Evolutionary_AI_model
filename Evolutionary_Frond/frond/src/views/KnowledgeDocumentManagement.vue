@@ -138,6 +138,19 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">选择密级标签 <span class="required">*</span></label>
+            <select v-model="selectedSecurityLabelId" class="form-select">
+              <option value="">请选择密级标签</option>
+              <option v-for="label in securityLabels" :key="label.id" :value="label.id">
+                {{ label.labelName }} ({{ label.labelCode }}) - {{ label.description }}
+              </option>
+            </select>
+            <p v-if="securityLabels.length === 0" class="form-tip warning">
+              暂无密级标签配置，请联系管理员添加
+            </p>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">选择文件</label>
             <div class="file-upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleFileDrop">
               <input
@@ -178,7 +191,7 @@
           <button
             class="btn btn-primary"
             @click="uploadDocument"
-            :disabled="!selectedFile || !selectedEmbeddingModelId || uploading"
+            :disabled="!selectedFile || !selectedEmbeddingModelId || !selectedSecurityLabelId || uploading"
           >
             <span v-if="uploading">上传中...</span>
             <span v-else>上传</span>
@@ -267,13 +280,23 @@ interface AiModelConfig {
   modelType: string
 }
 
+interface SecurityLabel {
+  id: string
+  labelName: string
+  labelCode: string
+  labelLevel: number
+  description: string
+}
+
 const documents = ref<KnowledgeDocument[]>([])
 const embeddingModels = ref<AiModelConfig[]>([])
+const securityLabels = ref<SecurityLabel[]>([])
 const loading = ref(false)
 const showUploadModal = ref(false)
 const showDetailModal = ref(false)
 const selectedFile = ref<File | null>(null)
 const selectedEmbeddingModelId = ref('')
+const selectedSecurityLabelId = ref('')
 const selectedDocument = ref<KnowledgeDocument | null>(null)
 const uploading = ref(false)
 const fileInput = ref<HTMLInputElement>()
@@ -307,11 +330,24 @@ const loadEmbeddingModels = async () => {
   }
 }
 
+// 加载密级标签列表
+const loadSecurityLabels = async () => {
+  try {
+    const response = await request.get('/system/security-label/list')
+    if (response.code === 200) {
+      securityLabels.value = response.data
+    }
+  } catch (error) {
+    console.error('加载密级标签列表失败:', error)
+  }
+}
+
 // 打开上传弹窗
 const openUploadModal = () => {
   showUploadModal.value = true
   selectedFile.value = null
   selectedEmbeddingModelId.value = ''
+  selectedSecurityLabelId.value = ''
 }
 
 // 关闭上传弹窗
@@ -349,7 +385,8 @@ const removeFile = () => {
 
 // 上传文档
 const uploadDocument = async () => {
-  if (!selectedFile.value || !selectedEmbeddingModelId.value) {
+  if (!selectedFile.value || !selectedEmbeddingModelId.value || !selectedSecurityLabelId.value) {
+    toast.showError('请选择向量模型和密级标签')
     return
   }
 
@@ -357,6 +394,7 @@ const uploadDocument = async () => {
   const formData = new FormData()
   formData.append('file', selectedFile.value)
   formData.append('embeddingModelId', selectedEmbeddingModelId.value)
+  formData.append('securityLabelId', selectedSecurityLabelId.value)
 
   try {
     const response = await request.post('/knowledge/document/upload', formData, {
@@ -470,6 +508,7 @@ const getStatusText = (status: string): string => {
 onMounted(() => {
   loadDocuments()
   loadEmbeddingModels()
+  loadSecurityLabels()
 })
 </script>
 
@@ -857,6 +896,11 @@ onMounted(() => {
 .form-tip.warning a {
   color: #10b981;
   text-decoration: underline;
+}
+
+.required {
+  color: #dc2626;
+  font-weight: bold;
 }
 
 .file-upload-area {

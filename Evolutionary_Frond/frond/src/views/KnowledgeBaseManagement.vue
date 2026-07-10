@@ -195,6 +195,19 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">选择密级标签 <span class="required">*</span></label>
+            <select v-model="uploadSecurityLabelId" class="form-select">
+              <option value="">请选择密级标签</option>
+              <option v-for="label in securityLabels" :key="label.id" :value="label.id">
+                {{ label.labelName }} ({{ label.labelCode }}) - {{ label.description }}
+              </option>
+            </select>
+            <p v-if="securityLabels.length === 0" class="form-tip warning">
+              暂无密级标签配置，请联系管理员添加
+            </p>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">选择文件</label>
             <div class="file-upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleFileDrop">
               <input
@@ -232,7 +245,7 @@
 
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeUploadModal">取消</button>
-          <button class="btn btn-primary" @click="uploadDocument" :disabled="!uploadFile || uploading" >
+          <button class="btn btn-primary" @click="uploadDocument" :disabled="!uploadFile || !uploadSecurityLabelId || uploading" >
             <span v-if="uploading">上传中...</span>
             <span v-else>上传</span>
           </button>
@@ -256,6 +269,14 @@ interface AiModelConfig {
   modelType: string
 }
 
+interface SecurityLabel {
+  id: string
+  labelName: string
+  labelCode: string
+  labelLevel: number
+  description: string
+}
+
 const knowledgeStore = useKnowledgeStore()
 const toast = useToast()
 
@@ -265,6 +286,7 @@ const loading = computed(() => knowledgeStore.loading)
 
 const selectedKB = ref<KnowledgeBase | null>(null)
 const embeddingModels = ref<AiModelConfig[]>([])
+const securityLabels = ref<SecurityLabel[]>([])
 
 // Modal states
 const showKBModal = ref(false)
@@ -284,6 +306,7 @@ const kbForm = ref({
 const uploadTargetKB = ref<KnowledgeBase | null>(null)
 const uploadFile = ref<File | null>(null)
 const uploadEmbeddingModelId = ref('')
+const uploadSecurityLabelId = ref('')
 const fileInput = ref<HTMLInputElement>()
 
 // 加载向量模型列表
@@ -295,6 +318,18 @@ const loadEmbeddingModels = async () => {
     }
   } catch (error) {
     console.error('加载向量模型列表失败:', error)
+  }
+}
+
+// 加载密级标签列表
+const loadSecurityLabels = async () => {
+  try {
+    const response = await request.get('/system/security-label/list')
+    if (response.code === 200) {
+      securityLabels.value = response.data
+    }
+  } catch (error) {
+    console.error('加载密级标签列表失败:', error)
   }
 }
 
@@ -380,6 +415,7 @@ const openUploadModal = (kb: KnowledgeBase) => {
   uploadTargetKB.value = kb
   uploadFile.value = null
   uploadEmbeddingModelId.value = kb.embeddingModelId || ''
+  uploadSecurityLabelId.value = ''
   showUploadModal.value = true
 }
 
@@ -420,14 +456,18 @@ const removeUploadFile = () => {
 
 // 上传文档
 const uploadDocument = async () => {
-  if (!uploadFile.value || !uploadTargetKB.value) return
+  if (!uploadFile.value || !uploadTargetKB.value || !uploadSecurityLabelId.value) {
+    toast.showError('请选择密级标签')
+    return
+  }
 
   uploading.value = true
   try {
     await knowledgeStore.uploadDocument(
       uploadFile.value,
       uploadTargetKB.value.id,
-      uploadEmbeddingModelId.value || undefined
+      uploadEmbeddingModelId.value || undefined,
+      uploadSecurityLabelId.value
     )
     toast.showSuccess('文档上传成功')
     closeUploadModal()
@@ -477,6 +517,7 @@ const getStatusText = (status: string): string => {
 onMounted(() => {
   knowledgeStore.loadKnowledgeBases()
   loadEmbeddingModels()
+  loadSecurityLabels()
 })
 </script>
 
@@ -925,6 +966,15 @@ onMounted(() => {
   font-size: 12px;
   color: #6b7280;
   margin-top: 4px;
+}
+
+.form-tip.warning {
+  color: #d97706;
+}
+
+.required {
+  color: #dc2626;
+  font-weight: bold;
 }
 
 .kb-name-display {

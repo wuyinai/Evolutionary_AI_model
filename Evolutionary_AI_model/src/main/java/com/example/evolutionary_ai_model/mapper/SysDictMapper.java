@@ -23,11 +23,9 @@ public interface SysDictMapper extends BaseMapper<SysDict> {
     List<SysDict> selectByDictType(@Param("dictType") String dictType);
 
     /**
-     * 根据字典类型和字典编码查询字典
+     * 查询所有字典类型（去重）
      *
-     * @param dictType 字典类型
-     * @param dictCode 字典编码
-     * @return 字典对象
+     * @return 字典类型列表
      */
-    SysDict selectByDictTypeAndCode(@Param("dictType") String dictType, @Param("dictCode") String dictCode);
+    List<SysDict> selectAllDictTypes();
 }

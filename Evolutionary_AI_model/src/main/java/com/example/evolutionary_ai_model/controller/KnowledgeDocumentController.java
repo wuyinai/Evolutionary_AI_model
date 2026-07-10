@@ -33,18 +33,19 @@ public class KnowledgeDocumentController {
     /**
      * 上传文档
      * 请求地址: POST /knowledge/document/upload
-     * 参数: file - 上传的文件, embeddingModelId - 向量模型配置ID
+     * 参数: file - 上传的文件, embeddingModelId - 向量模型配置ID, securityLabelId - 密级标签ID（必选）
      */
     @PostMapping("/upload")
     @PreAuthorize("hasAuthority('knowledge:document:upload')")
     public Result<Long> uploadDocument(@AuthenticationPrincipal UserDetails userDetails,
                                         @RequestParam("file") MultipartFile file,
-                                        @RequestParam("embeddingModelId") Long embeddingModelId) {
-        logger.info("上传文档请求，文件名: {}, 向量模型ID: {}", file.getOriginalFilename(), embeddingModelId);
+                                        @RequestParam("embeddingModelId") Long embeddingModelId,
+                                        @RequestParam("securityLabelId") Long securityLabelId) {
+        logger.info("上传文档请求，文件名: {}, 向量模型ID: {}, 密级ID: {}", file.getOriginalFilename(), embeddingModelId, securityLabelId);
 
         try {
             Long userId = getUserId(userDetails);
-            Long documentId = documentService.uploadAndProcessDocument(file, userId, embeddingModelId);
+            Long documentId = documentService.uploadAndProcessDocument(file, userId, embeddingModelId, securityLabelId);
             logger.info("文档上传成功，文档ID: {}", documentId);
             return Result.success("文档上传成功", documentId);
         } catch (Exception e) {
@@ -56,7 +57,7 @@ public class KnowledgeDocumentController {
     /**
      * 上传文档到指定知识库
      * 请求地址: POST /knowledge/document/upload-to-base
-     * 参数: file - 上传的文件, knowledgeBaseId - 知识库ID, embeddingModelId - 向量模型配置ID（可选）
+     * 参数: file - 上传的文件, knowledgeBaseId - 知识库ID, embeddingModelId - 向量模型配置ID（可选）, securityLabelId - 密级标签ID（必选）
      */
     @PostMapping("/upload-to-base")
     @PreAuthorize("hasAuthority('knowledge:document:upload')")
@@ -64,13 +65,14 @@ public class KnowledgeDocumentController {
     public Result<Long> uploadDocumentToKnowledgeBase(@AuthenticationPrincipal UserDetails userDetails,
                                                        @RequestParam("file") MultipartFile file,
                                                        @RequestParam("knowledgeBaseId") Long knowledgeBaseId,
-                                                       @RequestParam(value = "embeddingModelId", required = false) Long embeddingModelId) {
-        logger.info("上传文档到知识库请求，文件名: {}, 知识库ID: {}, 向量模型ID: {}", 
-                file.getOriginalFilename(), knowledgeBaseId, embeddingModelId);
+                                                       @RequestParam(value = "embeddingModelId", required = false) Long embeddingModelId,
+                                                       @RequestParam("securityLabelId") Long securityLabelId) {
+        logger.info("上传文档到知识库请求，文件名: {}, 知识库ID: {}, 向量模型ID: {}, 密级ID: {}", 
+                file.getOriginalFilename(), knowledgeBaseId, embeddingModelId, securityLabelId);
 
         try {
             Long userId = getUserId(userDetails);
-            Long documentId = documentService.uploadDocumentToKnowledgeBase(file, userId, knowledgeBaseId, embeddingModelId);
+            Long documentId = documentService.uploadDocumentToKnowledgeBase(file, userId, knowledgeBaseId, embeddingModelId, securityLabelId);
             logger.info("文档上传成功，文档ID: {}", documentId);
             return Result.success("文档上传成功", documentId);
         } catch (Exception e) {

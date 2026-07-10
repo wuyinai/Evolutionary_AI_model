@@ -315,6 +315,44 @@ public class RagServiceImpl implements RagService {
     }
 
     @Override
+    public List<DocumentChunkDTO> retrieveAllRelevantChunks(String query, int topK) {
+        logger.info("=== 开始全量RAG检索（检索所有已完成的文档） ===");
+        logger.info("查询内容: {}", query);
+        logger.info("topK: {}", topK);
+
+        if (!StringUtils.hasText(query)) {
+            logger.warn("查询内容为空，无法进行RAG检索");
+            return new ArrayList<>();
+        }
+
+        try {
+            // 获取所有已完成的文档
+            List<KnowledgeDocument> completedDocuments = knowledgeDocumentService.lambdaQuery()
+                    .eq(KnowledgeDocument::getStatus, "COMPLETED")
+                    .list();
+
+            if (completedDocuments.isEmpty()) {
+                logger.warn("没有已完成的知识库文档");
+                return new ArrayList<>();
+            }
+
+            // 收集所有已完成文档的ID
+            List<Long> allDocumentIds = completedDocuments.stream()
+                    .map(KnowledgeDocument::getId)
+                    .collect(Collectors.toList());
+
+            logger.info("已完成文档数量: {}", allDocumentIds.size());
+
+            // 复用现有的文档ID检索方法
+            return retrieveRelevantChunks(allDocumentIds, query, topK);
+
+        } catch (Exception e) {
+            logger.error("全量RAG检索异常: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
     public List<DocumentChunkDTO> retrieveRelevantChunksByKnowledgeBaseIds(List<Long> knowledgeBaseIds, String query, int topK) {
         logger.info("=== 开始RAG检索（按知识库ID） ===");
         logger.info("知识库ID列表: {}", knowledgeBaseIds);

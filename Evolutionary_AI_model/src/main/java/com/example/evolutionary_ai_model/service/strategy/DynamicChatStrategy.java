@@ -107,37 +107,18 @@ public class DynamicChatStrategy {
             // 检索到的文档块信息（用于前端展示）
             List<DocumentChunkDTO> relevantChunks = new ArrayList<>();
 
-            // 如果指定了知识库文档ID列表，进行RAG检索增强（文档挂载）
-            boolean hasDocIds = request.getKnowledgeDocumentIds() != null && !request.getKnowledgeDocumentIds().isEmpty();
-            // 如果指定了知识库ID列表，进行RAG检索增强（知识库挂载）
-            boolean hasBaseIds = request.getKnowledgeBaseIds() != null && !request.getKnowledgeBaseIds().isEmpty();
+            // 全量RAG检索：自动检索所有已完成文档，不再依赖前端传递知识库ID
+            logger.info("开始全量RAG检索增强");
+            int topK = request.getRagTopK() != null ? request.getRagTopK() : 3;
 
-            if (hasDocIds || hasBaseIds) {
-                int topK = request.getRagTopK() != null ? request.getRagTopK() : 3;
-                List<String> relevantContent = new ArrayList<>();
-
-                // 文档挂载检索
-                if (hasDocIds) {
-                    logger.info("开始RAG检索增强（文档挂载），知识库文档数量: {}", request.getKnowledgeDocumentIds().size());
-                    List<DocumentChunkDTO> docChunks = ragService.retrieveRelevantChunks(
-                            request.getKnowledgeDocumentIds(), request.getMessage(), topK);
-                    if (docChunks != null) {
-                        relevantChunks.addAll(docChunks);
-                    }
-                }
-
-                // 知识库挂载检索
-                if (hasBaseIds) {
-                    logger.info("开始RAG检索增强（知识库挂载），知识库数量: {}", request.getKnowledgeBaseIds().size());
-                    List<DocumentChunkDTO> baseChunks = ragService.retrieveRelevantChunksByKnowledgeBaseIds(
-                            request.getKnowledgeBaseIds(), request.getMessage(), topK);
-                    if (baseChunks != null) {
-                        relevantChunks.addAll(baseChunks);
-                    }
-                }
+            List<DocumentChunkDTO> docChunks = ragService.retrieveAllRelevantChunks(
+                    request.getMessage(), topK);
+            if (docChunks != null && !docChunks.isEmpty()) {
+                relevantChunks.addAll(docChunks);
+                logger.info("全量RAG检索完成，检索到 {} 条相关文档块", docChunks.size());
 
                 // 提取文本内容用于构建提示词
-                relevantContent = relevantChunks.stream()
+                List<String> relevantContent = relevantChunks.stream()
                         .map(DocumentChunkDTO::getContent)
                         .collect(java.util.stream.Collectors.toList());
 
@@ -145,6 +126,7 @@ public class DynamicChatStrategy {
                 prompt = ragService.buildRagPrompt(basePrompt, relevantContent);
                 logger.info("RAG增强提示词构建完成，相关内容数量: {}", relevantContent.size());
             } else {
+                logger.info("未检索到相关文档块，使用原始提示词");
                 prompt = basePrompt;
             }
 

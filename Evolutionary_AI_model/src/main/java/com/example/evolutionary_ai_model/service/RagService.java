@@ -39,6 +39,15 @@ public interface RagService {
     List<DocumentChunkDTO> retrieveRelevantChunksByKnowledgeBaseIds(List<Long> knowledgeBaseIds, String query, int topK);
 
     /**
+     * 检索所有已完成文档的相关文档块详细信息（全量检索）
+     * 不按知识库或文档ID过滤，检索所有可用的文档
+     * @param query 用户查询
+     * @param topK 返回的最相关文档片段数量
+     * @return 检索到的文档块详细信息列表
+     */
+    List<DocumentChunkDTO> retrieveAllRelevantChunks(String query, int topK);
+
+    /**
      * 构建RAG增强提示词
      * @param originalPrompt 原始提示词
      * @param relevantContent 检索到的相关内容

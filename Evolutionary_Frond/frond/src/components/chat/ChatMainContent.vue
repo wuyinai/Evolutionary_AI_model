@@ -49,9 +49,6 @@
         <!-- 模型选择器 -->
         <ModelSelector :disabled="isLoading" @change="onModelChange" />
 
-        <!-- 知识库选择器 -->
-        <KnowledgeSelector :disabled="isLoading" @change="onKnowledgeChange" />
-
         <!-- 钉选模型显示 -->
         <div v-if="pinnedModelInfo" class="pinned-model-info">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -110,7 +107,6 @@ import { useConversationStore } from '@/stores/conversation'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { streamChat, type DocumentChunk } from '@/utils/chat'
 import ModelSelector from '@/components/ModelSelector.vue'
-import KnowledgeSelector, { type KnowledgeSelection } from '@/components/KnowledgeSelector.vue'
 import DocumentChunksDisplay from '@/components/DocumentChunksDisplay.vue'
 import type { ChatMessageDTO } from '@/types/conversation'
 import { marked } from 'marked'
@@ -176,17 +172,6 @@ const onModelChange = (configId: string | null) => {
   currentConfigId.value = configId
 }
 
-// 当前选中的知识库文档ID列表（文档挂载）
-const selectedKnowledgeIds = ref<string[]>([])
-// 当前选中的知识库ID列表（知识库挂载）
-const selectedKnowledgeBaseIds = ref<string[]>([])
-
-// 知识库切换处理
-const onKnowledgeChange = (selection: KnowledgeSelection) => {
-  selectedKnowledgeIds.value = selection.documentIds
-  selectedKnowledgeBaseIds.value = selection.knowledgeBaseIds
-}
-
 // 取消钉选
 const unpinModel = () => {
   conversationStore.unpinModel()
@@ -244,8 +229,6 @@ const sendMessage = async () => {
         message: userMessage,
         configId: configId || undefined,
         history,
-        knowledgeDocumentIds: selectedKnowledgeIds.value.length > 0 ? selectedKnowledgeIds.value : undefined,
-        knowledgeBaseIds: selectedKnowledgeBaseIds.value.length > 0 ? selectedKnowledgeBaseIds.value : undefined,
         ragTopK: 3,
         roleId: conversationStore.selectedRoleId || undefined,
       },

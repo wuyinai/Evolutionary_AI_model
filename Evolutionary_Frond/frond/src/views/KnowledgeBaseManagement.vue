@@ -51,71 +51,88 @@
 
       <div v-else class="kb-list">
         <div
-          v-for="kb in knowledgeBases"
+          v-for="kb in paginatedKnowledgeBases"
           :key="kb.id"
           class="kb-card"
-          :class="{ active: selectedKB?.id === kb.id }"
-          @click="selectKnowledgeBase(kb)"
         >
-          <!-- Card Header -->
+          <!-- Card Header - Top -->
           <div class="card-header">
             <div class="kb-info">
               <h3 class="kb-name">{{ kb.name }}</h3>
-              <div class="kb-meta">
-                <span class="status-badge" :class="kb.status.toLowerCase()">{{ kb.status === 'ACTIVE' ? '活跃' : '停用' }}</span>
-                <span class="doc-count">{{ kb.documentCount }} 个文档</span>
-                <span class="chunk-count">{{ kb.chunkCount }} 个分块</span>
-              </div>
-            </div>
-            <div class="card-actions">
-              <button class="action-btn" @click.stop="openUploadModal(kb)" title="上传文档">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-              </button>
-              <button class="action-btn" @click.stop="openEditModal(kb)" title="编辑">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-              <button class="action-btn danger" @click.stop="deleteKnowledgeBase(kb.id)" title="删除">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
+              <span class="status-badge" :class="kb.status.toLowerCase()">{{ kb.status === 'ACTIVE' ? '活跃' : '停用' }}</span>
             </div>
           </div>
 
-          <!-- Card Body -->
+          <!-- Card Body - Center -->
           <div class="card-body">
+            <div class="kb-stats">
+              <span class="doc-count">{{ kb.documentCount }} 文档</span>
+              <span class="chunk-count">{{ kb.chunkCount }} 分块</span>
+            </div>
             <p v-if="kb.description" class="kb-description">{{ kb.description }}</p>
             <div class="info-row">
-              <label class="info-label">创建时间:</label>
               <span class="info-value">{{ formatDateTime(kb.createTime) }}</span>
             </div>
           </div>
 
-          <!-- Documents Section (shown when selected) -->
-          <div v-if="selectedKB?.id === kb.id && documents.length > 0" class="documents-section">
-            <h4 class="documents-title">文档列表</h4>
-            <div class="document-list-mini">
-              <div v-for="doc in documents" :key="doc.id" class="document-item-mini">
-                <span class="doc-name-mini">{{ doc.documentName }}</span>
-                <span class="status-badge-mini" :class="doc.status.toLowerCase()">{{ getStatusText(doc.status) }}</span>
-                <button class="action-btn-mini danger" @click.stop="deleteDocument(doc.id, kb.id)" title="删除">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
+          <!-- Card Actions - Bottom -->
+          <div class="card-actions">
+            <button class="action-btn view" @click.stop="viewDocuments(kb)" title="查看文档">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button class="action-btn" @click.stop="openUploadModal(kb)" title="上传文档">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </button>
+            <button class="action-btn" @click.stop="openEditModal(kb)" title="编辑">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="action-btn danger" @click.stop="deleteKnowledgeBase(kb.id)" title="删除">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           </div>
         </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="knowledgeBases.length > pageSize" class="pagination">
+        <button
+          class="pagination-btn"
+          :disabled="currentPage === 1"
+          @click="prevPage"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          上一页
+        </button>
+        <div class="page-info">
+          <span class="current-page">{{ currentPage }}</span>
+          <span class="page-divider">/</span>
+          <span class="total-pages">{{ totalPages }}</span>
+        </div>
+        <button
+          class="pagination-btn"
+          :disabled="currentPage === totalPages"
+          @click="nextPage"
+        >
+          下一页
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -265,11 +282,74 @@
         </div>
       </div>
     </div>
+
+    <!-- View Documents Modal -->
+    <div v-if="showDocumentsModal" class="modal-overlay" @click="closeDocumentsModal">
+      <div class="modal-content documents-modal" @click.stop>
+        <div class="modal-header">
+          <h2>{{ viewTargetKB?.name }} - 文档列表</h2>
+          <button class="close-btn" @click="closeDocumentsModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div v-if="loadingDocuments" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+          </div>
+
+          <div v-else-if="documentsList.length === 0" class="empty-state">
+            <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <p class="empty-title">暂无文档</p>
+            <p class="empty-text">该知识库下还没有上传文档</p>
+          </div>
+
+          <div v-else class="document-list">
+            <div v-for="doc in documentsList" :key="doc.id" class="document-item">
+              <div class="doc-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <span class="doc-name">{{ doc.documentName }}</span>
+              <span class="doc-chunks">{{ doc.chunkCount }} 分块</span>
+              <span class="status-badge" :class="doc.status.toLowerCase()">{{ getStatusText(doc.status) }}</span>
+              <button class="action-btn danger" @click.stop="deleteDocument(doc.id, viewTargetKB?.id)" title="删除">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary" @click="openUploadModal(viewTargetKB!)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>上传文档</span>
+          </button>
+          <button class="btn btn-secondary" @click="closeDocumentsModal">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
 import request from '@/utils/request'
 import type { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge'
@@ -300,6 +380,69 @@ const loading = computed(() => knowledgeStore.loading)
 const selectedKB = ref<KnowledgeBase | null>(null)
 const embeddingModels = ref<AiModelConfig[]>([])
 const securityLabels = ref<SecurityLabel[]>([])
+
+// Documents Modal
+const showDocumentsModal = ref(false)
+const viewTargetKB = ref<KnowledgeBase | null>(null)
+const documentsList = ref<KnowledgeDocument[]>([])
+const loadingDocuments = ref(false)
+
+// Pagination
+const currentPage = ref(1)
+const pageSize = 6
+const paginatedKnowledgeBases = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return knowledgeBases.value.slice(start, end)
+})
+const totalPages = computed(() => Math.ceil(knowledgeBases.value.length / pageSize))
+
+// Watch for knowledgeBases changes to adjust currentPage
+watch(knowledgeBases, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value || 1
+    selectedKB.value = null
+  }
+})
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    selectedKB.value = null
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    selectedKB.value = null
+  }
+}
+
+// 查看知识库文档
+const viewDocuments = async (kb: KnowledgeBase) => {
+  viewTargetKB.value = kb
+  showDocumentsModal.value = true
+  loadingDocuments.value = true
+  documentsList.value = []
+  try {
+    const response = await knowledgeStore.loadKnowledgeBaseDocuments(kb.id)
+    if (response && response.code === 200) {
+      documentsList.value = response.data || []
+    }
+  } catch (error) {
+    console.error('加载文档列表失败:', error)
+  } finally {
+    loadingDocuments.value = false
+  }
+}
+
+// 关闭文档列表弹窗
+const closeDocumentsModal = () => {
+  showDocumentsModal.value = false
+  viewTargetKB.value = null
+  documentsList.value = []
+}
 
 // Modal states
 const showKBModal = ref(false)
@@ -486,19 +629,26 @@ const uploadDocument = async () => {
     )
     toast.showSuccess('文档上传成功')
     closeUploadModal()
-    // 刷新文档列表
-    if (selectedKB.value?.id === uploadTargetKB.value.id) {
-      await knowledgeStore.loadKnowledgeBaseDocuments(uploadTargetKB.value.id)
+    // 如果文档列表弹窗打开且是同一个知识库，刷新文档列表
+    if (showDocumentsModal.value && viewTargetKB.value?.id === uploadTargetKB.value.id) {
+      try {
+        const response = await knowledgeStore.loadKnowledgeBaseDocuments(uploadTargetKB.value.id)
+        if (response && response.code === 200) {
+          documentsList.value = response.data || []
+        }
+      } catch (e) {
+        console.error('刷新文档列表失败:', e)
+      }
     }
   } catch (error) {
-    toast.showError('文档上传失败')
+    // 错误提示由全局拦截器处理，这里不再重复显示
   } finally {
     uploading.value = false
   }
 }
 
 // 删除文档
-const deleteDocument = async (documentId: string, knowledgeBaseId: string) => {
+const deleteDocument = async (documentId: string, knowledgeBaseId: string | undefined) => {
   if (!confirm('确定要删除该文档吗？')) {
     return
   }
@@ -506,8 +656,19 @@ const deleteDocument = async (documentId: string, knowledgeBaseId: string) => {
   try {
     await knowledgeStore.removeDocument(documentId, knowledgeBaseId)
     toast.showSuccess('文档删除成功')
+    // 如果文档列表弹窗打开，刷新文档列表
+    if (showDocumentsModal.value && knowledgeBaseId) {
+      try {
+        const response = await knowledgeStore.loadKnowledgeBaseDocuments(knowledgeBaseId)
+        if (response && response.code === 200) {
+          documentsList.value = response.data || []
+        }
+      } catch (e) {
+        console.error('刷新文档列表失败:', e)
+      }
+    }
   } catch (error) {
-    toast.showError('文档删除失败')
+    // 错误提示由全局拦截器处理
   }
 }
 
@@ -689,19 +850,25 @@ onMounted(() => {
 
 .kb-list {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
 .kb-card {
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
+  aspect-ratio: 1;
+  padding: 20px;
   transition: all 0.2s;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 .kb-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .kb-card.active {
@@ -711,13 +878,14 @@ onMounted(() => {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .kb-info {
-  flex: 1;
+  text-align: center;
+  width: 100%;
 }
 
 .kb-name {
@@ -725,12 +893,16 @@ onMounted(() => {
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kb-meta {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .status-badge {
@@ -756,26 +928,36 @@ onMounted(() => {
   color: #6b7280;
 }
 
+.kb-stats {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
 .card-actions {
   display: flex;
+  justify-content: center;
   gap: 8px;
+  margin-top: 12px;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: 1px solid #e5e7eb;
   background: white;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-btn:hover {
   background: #f9fafb;
+  transform: scale(1.05);
 }
 
 .action-btn.danger:hover {
@@ -784,29 +966,49 @@ onMounted(() => {
   color: #dc2626;
 }
 
+.action-btn.view:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
 .card-body {
-  display: grid;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 8px;
+  text-align: center;
 }
 
 .kb-description {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
-  margin: 0 0 8px 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
 }
 
 .info-row {
   display: flex;
-  font-size: 14px;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  gap: 4px;
 }
 
 .info-label {
   color: #6b7280;
-  min-width: 100px;
 }
 
 .info-value {
   color: #1f2937;
+  font-weight: 500;
 }
 
 .documents-section {
@@ -1061,5 +1263,145 @@ onMounted(() => {
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
+}
+
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 16px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.current-page {
+  font-weight: 600;
+  color: #10b981;
+  padding: 4px 8px;
+  background: #ecfdf5;
+  border-radius: 4px;
+}
+
+.page-divider {
+  color: #9ca3af;
+}
+
+.total-pages {
+  color: #374151;
+}
+
+/* Documents Modal Styles */
+.documents-modal {
+  max-width: 600px;
+}
+
+.document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.document-item:hover {
+  background: #f3f4f6;
+}
+
+.doc-icon {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.doc-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-chunks {
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin: 8px 0 4px;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Responsive Layout */
+@media (max-width: 900px) {
+  .kb-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .kb-list {
+    grid-template-columns: 1fr;
+  }
+
+  .kb-card {
+    aspect-ratio: auto;
+    min-height: 200px;
+  }
 }
 </style>

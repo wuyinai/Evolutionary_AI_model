@@ -71,8 +71,7 @@ public class KnowledgeBaseController {
 
         try {
             Long userId = getUserId(userDetails);
-            Long deptId = getDeptId(userDetails);
-            List<KnowledgeBase> knowledgeBases = knowledgeBaseService.listVisibleKnowledgeBases(userId, deptId);
+            List<KnowledgeBase> knowledgeBases = knowledgeBaseService.listVisibleKnowledgeBases(userId);
             logger.info("获取知识库列表成功，数量: {}", knowledgeBases.size());
             return Result.success(knowledgeBases);
         } catch (Exception e) {
@@ -161,16 +160,18 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 获取知识库下的文档列表
+     * 获取知识库下的文档列表（密级需低于用户角色的最高密级）
      * 请求地址: GET /knowledge/base/{knowledgeBaseId}/documents
      */
     @GetMapping("/{knowledgeBaseId}/documents")
     @PreAuthorize("hasAuthority('knowledge:base:list')")
-    public Result<List<KnowledgeDocument>> listDocuments(@PathVariable Long knowledgeBaseId) {
+    public Result<List<KnowledgeDocument>> listDocuments(@AuthenticationPrincipal UserDetails userDetails,
+                                                         @PathVariable Long knowledgeBaseId) {
         logger.info("获取知识库文档列表请求，知识库ID: {}", knowledgeBaseId);
 
         try {
-            List<KnowledgeDocument> documents = knowledgeBaseService.listDocuments(knowledgeBaseId);
+            Long userId = getUserId(userDetails);
+            List<KnowledgeDocument> documents = knowledgeBaseService.listDocuments(knowledgeBaseId, userId);
             logger.info("获取文档列表成功，数量: {}", documents.size());
             return Result.success(documents);
         } catch (Exception e) {

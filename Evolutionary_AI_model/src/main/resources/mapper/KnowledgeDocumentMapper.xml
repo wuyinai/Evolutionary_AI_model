@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.evolutionary_ai_model.mapper.KnowledgeDocumentMapper">
+
+    <!-- 查询知识库下的文档列表（密级需低于用户角色的最高密级） -->
+    <select id="selectDocumentsByKnowledgeBaseId" resultType="com.example.evolutionary_ai_model.entity.KnowledgeDocument">
+        SELECT DISTINCT
+            kd.id,
+            kd.document_name,
+            kd.user_id,
+            kd.knowledge_base_id,
+            kd.file_type,
+            kd.file_size,
+            kd.storage_path,
+            kd.embedding_model_id,
+            kd.status,
+            kd.chunk_count,
+            kd.error_message,
+            kd.security_label_id,
+            kd.create_time,
+            kd.update_time,
+            kd.del_flag
+        FROM knowledge_document kd
+        LEFT JOIN knowledge_security_label ksl ON kd.security_label_id = ksl.id
+        WHERE kd.del_flag = 0
+        AND kd.knowledge_base_id = #{knowledgeBaseId}
+        AND (ksl.label_level IS NULL OR ksl.label_level &lt;= (
+            SELECT MAX(ksl2.label_level)
+            FROM sys_user_role sur
+            JOIN sys_role sr ON sur.role_id = sr.id
+            JOIN knowledge_security_label ksl2 ON sr.security_label_id = ksl2.id
+            WHERE sur.user_id = #{userId}
+        ))
+        ORDER BY kd.create_time DESC
+    </select>
+
+</mapper>

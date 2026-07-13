@@ -80,8 +80,8 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     }
 
     @Override
-    public List<KnowledgeBase> listVisibleKnowledgeBases(Long userId, Long deptId) {
-        return baseMapper.selectVisibleKnowledgeBases(userId, deptId);
+    public List<KnowledgeBase> listVisibleKnowledgeBases(Long userId) {
+        return baseMapper.selectVisibleKnowledgeBases(userId);
     }
 
     @Override
@@ -99,33 +99,32 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     @Transactional
     public void deleteKnowledgeBase(Long knowledgeBaseId) {
         logger.info("删除知识库，ID: {}", knowledgeBaseId);
-        
+
         KnowledgeBase knowledgeBase = getById(knowledgeBaseId);
         if (knowledgeBase == null) {
             throw new RuntimeException("知识库不存在，ID: " + knowledgeBaseId);
         }
-        
-        // 1. 获取知识库下所有文档
-        List<KnowledgeDocument> documents = listDocuments(knowledgeBaseId);
-        
+
+        // 1. 获取知识库下所有文档（删除时不受密级限制）
+        List<KnowledgeDocument> documents = documentMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<KnowledgeDocument>()
+                        .eq(KnowledgeDocument::getKnowledgeBaseId, knowledgeBaseId)
+        );
+
         // 2. 删除所有文档（包括MinIO文件、向量、数据库记录）
         for (KnowledgeDocument document : documents) {
             deleteDocumentWithChunks(document.getId());
         }
-        
+
         // 3. 删除知识库记录
         removeById(knowledgeBaseId);
-        
+
         logger.info("知识库删除成功，ID: {}，删除文档数: {}", knowledgeBaseId, documents.size());
     }
 
     @Override
-    public List<KnowledgeDocument> listDocuments(Long knowledgeBaseId) {
-        return documentMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<KnowledgeDocument>()
-                        .eq(KnowledgeDocument::getKnowledgeBaseId, knowledgeBaseId)
-                        .orderByDesc(KnowledgeDocument::getCreateTime)
-        );
+    public List<KnowledgeDocument> listDocuments(Long knowledgeBaseId, Long userId) {
+        return documentMapper.selectDocumentsByKnowledgeBaseId(knowledgeBaseId, userId);
     }
 
     @Override

@@ -17,8 +17,7 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBase> {
     /**
      * 查询用户可见的知识库列表（用户自己创建的，或对所在部门开放且密级不高于用户最高密级的）
      * @param userId 用户ID
-     * @param deptId 部门ID
      * @return 知识库列表
      */
-    List<KnowledgeBase> selectVisibleKnowledgeBases(@Param("userId") Long userId, @Param("deptId") Long deptId);
+    List<KnowledgeBase> selectVisibleKnowledgeBases(@Param("userId") Long userId);
 }

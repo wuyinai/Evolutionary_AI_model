@@ -2,16 +2,33 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.evolutionary_ai_model.mapper.KnowledgeBaseMapper">
 
-    <!--  查询知识库：查询当前用户自己创建的知识库和对所处部门开放的且密级低于用户的知识库  -->
+    <!--  查询知识库：查询当前用户自己创建的知识库和对所处部门开放的知识库，密级需低于用户角色的最高密级  -->
     <select id="selectVisibleKnowledgeBases" resultType="com.example.evolutionary_ai_model.entity.KnowledgeBase">
-        SELECT DISTINCT kb.* FROM knowledge_base kb
+        SELECT DISTINCT
+            kb.id,
+            kb.name,
+            kb.description,
+            kb.user_id,
+            kb.embedding_model_id,
+            kb.document_count,
+            kb.chunk_count,
+            kb.status,
+            kb.security_label_id,
+            kb.create_time,
+            kb.update_time,
+            kb.del_flag
+        FROM knowledge_base kb
         LEFT JOIN knowledge_base_dept kbd ON kb.id = kbd.knowledge_base_id
         LEFT JOIN knowledge_security_label ksl ON kb.security_label_id = ksl.id
         WHERE kb.del_flag = 0
         AND (
             kb.user_id = #{userId}
             OR (
-                kbd.dept_id = #{deptId}
+                kbd.dept_id IN (
+                    SELECT sud.dept_id
+                    FROM sys_user_dept sud
+                    WHERE sud.user_id = #{userId}
+                )
                 AND (ksl.label_level IS NULL OR ksl.label_level &lt;= (
                     SELECT MAX(ksl2.label_level)
                     FROM sys_user_role sur

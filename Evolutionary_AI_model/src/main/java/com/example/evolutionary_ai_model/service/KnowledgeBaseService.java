@@ -29,10 +29,9 @@ public interface KnowledgeBaseService extends IService<KnowledgeBase> {
     /**
      * 获取用户可见的知识库列表（用户自己创建的或用户所在部门关联的）
      * @param userId 用户ID
-     * @param deptId 部门ID
      * @return 知识库列表
      */
-    List<KnowledgeBase> listVisibleKnowledgeBases(Long userId, Long deptId);
+    List<KnowledgeBase> listVisibleKnowledgeBases(Long userId);
 
     /**
      * 获取知识库详情（包含文档列表）
@@ -54,11 +53,12 @@ public interface KnowledgeBaseService extends IService<KnowledgeBase> {
     void deleteKnowledgeBase(Long knowledgeBaseId);
 
     /**
-     * 获取知识库下的文档列表
+     * 获取知识库下的文档列表（密级需低于用户角色的最高密级）
      * @param knowledgeBaseId 知识库ID
+     * @param userId 用户ID
      * @return 文档列表
      */
-    List<KnowledgeDocument> listDocuments(Long knowledgeBaseId);
+    List<KnowledgeDocument> listDocuments(Long knowledgeBaseId, Long userId);
 
     /**
      * 更新知识库统计信息（文档数量、分块数量）

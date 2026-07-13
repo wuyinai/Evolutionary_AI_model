@@ -353,9 +353,10 @@ public class RagServiceImpl implements RagService {
     }
 
     @Override
-    public List<DocumentChunkDTO> retrieveRelevantChunksByKnowledgeBaseIds(List<Long> knowledgeBaseIds, String query, int topK) {
+    public List<DocumentChunkDTO> retrieveRelevantChunksByKnowledgeBaseIds(List<Long> knowledgeBaseIds, Long userId, String query, int topK) {
         logger.info("=== 开始RAG检索（按知识库ID） ===");
         logger.info("知识库ID列表: {}", knowledgeBaseIds);
+        logger.info("用户ID: {}", userId);
         logger.info("查询内容: {}", query);
         logger.info("topK: {}", topK);
 
@@ -370,10 +371,10 @@ public class RagServiceImpl implements RagService {
         }
 
         try {
-            // 收集所有知识库下的文档ID
+            // 收集所有知识库下的文档ID（过滤密级）
             List<Long> allDocumentIds = new ArrayList<>();
             for (Long kbId : knowledgeBaseIds) {
-                List<KnowledgeDocument> docs = knowledgeBaseService.listDocuments(kbId);
+                List<KnowledgeDocument> docs = knowledgeBaseService.listDocuments(kbId, userId);
                 if (docs != null) {
                     for (KnowledgeDocument doc : docs) {
                         allDocumentIds.add(doc.getId());

@@ -127,11 +127,13 @@ public class SysDeptController {
     /**
      * 移除用户与部门的关联
      */
-    @DeleteMapping("/users")
+    @DeleteMapping("/{deptId}/users")
     @PreAuthorize("hasAuthority('sys:dept:edit')")
     @OperationLog("移除用户与部门关联")
-    public Result<Void> removeUsersFromDept(@RequestBody List<Long> userIds) {
-        return sysDeptService.removeUsersFromDept(userIds);
+    public Result<Void> removeUsersFromDept(
+            @PathVariable Long deptId,
+            @RequestBody List<Long> userIds) {
+        return sysDeptService.removeUsersFromDept(deptId, userIds);
     }
 
     /**

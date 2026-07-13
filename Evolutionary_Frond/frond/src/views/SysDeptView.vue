@@ -1089,7 +1089,7 @@ const handleRemoveUser = async (userId: string) => {
   if (!selectedDeptId.value) return
   if (!confirm('确定要移除该用户与部门的关联吗？')) return
   try {
-    const response = await removeUsersFromDept([userId])
+    const response = await removeUsersFromDept(selectedDeptId.value, [userId])
     if (response.code === 200) {
       loadDeptUsers()
       selectedUserIds.value = selectedUserIds.value.filter(id => id !== userId)
@@ -1108,7 +1108,7 @@ const handleRemoveSelectedUsers = async () => {
   if (!selectedDeptId.value || selectedUserIds.value.length === 0) return
   if (!confirm(`确定要移除选中的 ${selectedUserIds.value.length} 个用户吗？`)) return
   try {
-    const response = await removeUsersFromDept(selectedUserIds.value)
+    const response = await removeUsersFromDept(selectedDeptId.value, selectedUserIds.value)
     if (response.code === 200) {
       loadDeptUsers()
       selectedUserIds.value = []

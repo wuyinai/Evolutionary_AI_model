@@ -30,6 +30,10 @@ CREATE TABLE `sys_user` (
                             KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统用户表';
 
+-- 用户部门关联迁移到 sys_user_dept 表（多对多），移除旧字段
+ALTER TABLE `sys_user` DROP COLUMN `dept_id`,
+DROP INDEX `idx_dept_id`;
+
 -- =============================================
 -- 2. 角色表
 -- =============================================
@@ -171,7 +175,22 @@ CREATE TABLE `sys_operation_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志表';
 
 -- =============================================
--- 9. 登录日志表
+-- 9. 用户部门关联表
+-- =============================================
+CREATE TABLE `sys_user_dept` (
+                                 `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                 `user_id` BIGINT NOT NULL COMMENT '用户ID',
+                                 `dept_id` BIGINT NOT NULL COMMENT '部门ID',
+                                 `create_by` VARCHAR(50) DEFAULT NULL COMMENT '创建人',
+                                 `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                 PRIMARY KEY (`id`),
+                                 UNIQUE KEY `uk_user_dept` (`user_id`, `dept_id`),
+                                 KEY `idx_user_id` (`user_id`),
+                                 KEY `idx_dept_id` (`dept_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户部门关联表';
+
+-- =============================================
+-- 10. 登录日志表
 -- =============================================
 CREATE TABLE `sys_login_log` (
                                  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '日志ID',

@@ -4,8 +4,11 @@ import com.example.evolutionary_ai_model.annotation.OperationLog;
 import com.example.evolutionary_ai_model.common.result.Result;
 import com.example.evolutionary_ai_model.entity.KnowledgeBase;
 import com.example.evolutionary_ai_model.entity.KnowledgeDocument;
+import com.example.evolutionary_ai_model.entity.SysUserDept;
+import com.example.evolutionary_ai_model.mapper.SysUserDeptMapper;
 import com.example.evolutionary_ai_model.security.LoginUserDetails;
 import com.example.evolutionary_ai_model.service.KnowledgeBaseService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,9 +29,11 @@ public class KnowledgeBaseController {
     private static final Logger logger = LoggerFactory.getLogger(KnowledgeBaseController.class);
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final SysUserDeptMapper sysUserDeptMapper;
 
-    public KnowledgeBaseController(KnowledgeBaseService knowledgeBaseService) {
+    public KnowledgeBaseController(KnowledgeBaseService knowledgeBaseService, SysUserDeptMapper sysUserDeptMapper) {
         this.knowledgeBaseService = knowledgeBaseService;
+        this.sysUserDeptMapper = sysUserDeptMapper;
     }
 
     /**
@@ -185,11 +190,16 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 从UserDetails中获取当前用户所属部门ID
+     * 从UserDetails中获取当前用户所属部门ID（取自用户-部门关联表）
      */
     private Long getDeptId(UserDetails userDetails) {
         if (userDetails instanceof LoginUserDetails) {
-            return ((LoginUserDetails) userDetails).getSysUser().getDeptId();
+            Long userId = ((LoginUserDetails) userDetails).getUserId();
+            LambdaQueryWrapper<SysUserDept> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(SysUserDept::getUserId, userId);
+            wrapper.last("LIMIT 1");
+            SysUserDept userDept = sysUserDeptMapper.selectOne(wrapper);
+            return userDept != null ? userDept.getDeptId() : null;
         }
         throw new IllegalArgumentException("无法获取用户信息");
     }

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `knowledge_base` (
     `document_count` INT DEFAULT 0 COMMENT '文档数量',
     `chunk_count` INT DEFAULT 0 COMMENT '总分块数量',
     `status` VARCHAR(20) DEFAULT 'ACTIVE' COMMENT '知识库状态：ACTIVE-活跃 INACTIVE-停用',
+    `security_label_id` BIGINT DEFAULT NULL COMMENT '密级标签ID',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `del_flag` TINYINT DEFAULT 0 COMMENT '删除标记（0-未删除 1-已删除）',

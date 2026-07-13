@@ -15,7 +15,7 @@ import java.util.List;
 public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBase> {
 
     /**
-     * 查询用户可见的知识库列表（用户自己创建的或用户所在部门关联的）
+     * 查询用户可见的知识库列表（用户自己创建的，或对所在部门开放且密级不高于用户最高密级的）
      * @param userId 用户ID
      * @param deptId 部门ID
      * @return 知识库列表

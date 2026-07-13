@@ -47,7 +47,6 @@ public class SysUserServiceImpl implements SysUserService {
         sysUser.setPhone(userAddDTO.getPhone());
         sysUser.setGender(userAddDTO.getGender() != null ? userAddDTO.getGender() : 0);
         sysUser.setStatus(userAddDTO.getStatus() != null ? userAddDTO.getStatus() : 1);
-        sysUser.setDeptId(userAddDTO.getDeptId());
         sysUser.setRemark(userAddDTO.getRemark());
         sysUser.setAvatar(userAddDTO.getAvatar());
 
@@ -81,7 +80,6 @@ public class SysUserServiceImpl implements SysUserService {
         sysUser.setPhone(userUpdateDTO.getPhone());
         sysUser.setGender(userUpdateDTO.getGender());
         sysUser.setStatus(userUpdateDTO.getStatus());
-        sysUser.setDeptId(userUpdateDTO.getDeptId());
         sysUser.setRemark(userUpdateDTO.getRemark());
         sysUser.setAvatar(userUpdateDTO.getAvatar());
 
@@ -128,7 +126,9 @@ public class SysUserServiceImpl implements SysUserService {
 
         //构建查询条件
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(deptId != null, SysUser::getDeptId, deptId);
+        if (deptId != null) {
+            wrapper.inSql(SysUser::getId, "SELECT user_id FROM sys_user_dept WHERE dept_id = " + deptId);
+        }
         wrapper.orderByDesc(SysUser::getCreateTime);
 
         //执行分页查询

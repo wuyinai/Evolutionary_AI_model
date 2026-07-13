@@ -142,7 +142,18 @@
             <label class="form-label">描述</label>
             <textarea v-model="kbForm.description" class="form-textarea" placeholder="请输入知识库描述" rows="3"></textarea>
           </div>
-
+          <div class="form-group">
+            <label class="form-label">密级标签 <span class="required">*</span></label>
+            <select v-model="kbForm.securityLabelId" class="form-select">
+              <option value="">请选择密级标签</option>
+              <option v-for="label in securityLabels" :key="label.id" :value="label.id">
+                {{ label.labelName }} ({{ label.labelCode }}) - {{ label.description }}
+              </option>
+            </select>
+            <p v-if="securityLabels.length === 0" class="form-tip warning">
+              暂无密级标签配置，请联系管理员添加
+            </p>
+          </div>
           <div class="form-group">
             <label class="form-label">默认向量模型</label>
             <select v-model="kbForm.embeddingModelId" class="form-select">
@@ -153,11 +164,13 @@
             </select>
             <p class="form-tip">选择默认向量模型后，上传文档时将自动使用该模型</p>
           </div>
+
+
         </div>
 
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeKBModal">取消</button>
-          <button class="btn btn-primary" @click="submitKBForm" :disabled="!kbForm.name || submitting">
+          <button class="btn btn-primary" @click="submitKBForm" :disabled="!kbForm.name || !kbForm.securityLabelId || submitting">
             <span v-if="submitting">处理中...</span>
             <span v-else>{{ isEditing ? '保存' : '创建' }}</span>
           </button>
@@ -300,7 +313,8 @@ const kbForm = ref({
   id: '',
   name: '',
   description: '',
-  embeddingModelId: ''
+  embeddingModelId: '',
+  securityLabelId: ''
 })
 
 const uploadTargetKB = ref<KnowledgeBase | null>(null)
@@ -342,7 +356,7 @@ const selectKnowledgeBase = async (kb: KnowledgeBase) => {
 // 打开创建弹窗
 const openCreateModal = () => {
   isEditing.value = false
-  kbForm.value = { id: '', name: '', description: '', embeddingModelId: '' }
+  kbForm.value = { id: '', name: '', description: '', embeddingModelId: '', securityLabelId: '' }
   showKBModal.value = true
 }
 
@@ -381,7 +395,8 @@ const submitKBForm = async () => {
       await knowledgeStore.createKB({
         name: kbForm.value.name,
         description: kbForm.value.description,
-        embeddingModelId: kbForm.value.embeddingModelId
+        embeddingModelId: kbForm.value.embeddingModelId,
+        securityLabelId: kbForm.value.securityLabelId
       })
       toast.showSuccess('知识库创建成功')
     }

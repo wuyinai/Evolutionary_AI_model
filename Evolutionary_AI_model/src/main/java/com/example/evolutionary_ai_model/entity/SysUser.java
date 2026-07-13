@@ -31,8 +31,6 @@ public class SysUser implements Serializable {
 
     private Integer status;
 
-    private Long deptId;
-
     private LocalDateTime lastLoginTime;
 
     private String lastLoginIp;

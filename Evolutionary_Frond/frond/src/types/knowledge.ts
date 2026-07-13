@@ -44,6 +44,7 @@ export interface CreateKnowledgeBaseDTO {
   name: string
   description?: string
   embeddingModelId?: string
+  securityLabelId?: string
 }
 
 /**

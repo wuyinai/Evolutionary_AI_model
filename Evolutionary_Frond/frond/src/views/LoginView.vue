@@ -97,7 +97,7 @@ const handleLogin = async () => {
       errorMessage.value = response.message || '登录失败，请重试'
     }
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || '登录失败，请检查网络连接'
+    errorMessage.value = error.message || '登录失败，请检查网络连接'
   } finally {
     isLoading.value = false
   }

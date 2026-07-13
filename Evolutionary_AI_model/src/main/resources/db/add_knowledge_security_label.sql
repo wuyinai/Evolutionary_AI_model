@@ -27,6 +27,10 @@ ADD INDEX `idx_security_label_id` (`security_label_id`);
 ALTER TABLE `knowledge_base`
 ADD COLUMN `dept_id` BIGINT DEFAULT NULL COMMENT '所属部门ID（部门级知识库）' AFTER `user_id`,
 ADD INDEX `idx_dept_id` (`dept_id`);
+-- 为知识库表添加密级标签字段
+ALTER TABLE `knowledge_base`
+ADD COLUMN `security_label_id` BIGINT DEFAULT NULL COMMENT '密级标签ID' AFTER `status`,
+ADD INDEX `idx_security_label_id` (`security_label_id`);
 -- 为文档表添加密级标签字段
 ALTER TABLE `knowledge_document`
 ADD COLUMN `security_label_id` BIGINT DEFAULT NULL COMMENT '密级标签ID' AFTER `knowledge_base_id`,

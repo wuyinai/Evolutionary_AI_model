@@ -9,9 +9,11 @@ import com.example.evolutionary_ai_model.entity.dto.DeptUpdateDTO;
 import com.example.evolutionary_ai_model.entity.KnowledgeBaseDept;
 import com.example.evolutionary_ai_model.entity.SysDept;
 import com.example.evolutionary_ai_model.entity.SysUser;
+import com.example.evolutionary_ai_model.entity.SysUserDept;
 import com.example.evolutionary_ai_model.entity.SysUserRole;
 import com.example.evolutionary_ai_model.mapper.KnowledgeBaseDeptMapper;
 import com.example.evolutionary_ai_model.mapper.SysDeptMapper;
+import com.example.evolutionary_ai_model.mapper.SysUserDeptMapper;
 import com.example.evolutionary_ai_model.mapper.SysUserMapper;
 import com.example.evolutionary_ai_model.mapper.SysUserRoleMapper;
 import com.example.evolutionary_ai_model.service.SysDeptService;
@@ -35,6 +37,7 @@ public class SysDeptServiceImpl implements SysDeptService {
 
     private final SysDeptMapper sysDeptMapper;
     private final SysUserMapper sysUserMapper;
+    private final SysUserDeptMapper sysUserDeptMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
     private final KnowledgeBaseDeptMapper knowledgeBaseDeptMapper;
 
@@ -85,10 +88,10 @@ public class SysDeptServiceImpl implements SysDeptService {
 
         //如果有负责人用户ID，将该用户添加到部门
         if (deptAddDTO.getLeaderId() != null) {
-            LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(SysUser::getId, deptAddDTO.getLeaderId());
-            updateWrapper.set(SysUser::getDeptId, sysDept.getId());
-            sysUserMapper.update(null, updateWrapper);
+            SysUserDept userDept = new SysUserDept();
+            userDept.setUserId(deptAddDTO.getLeaderId());
+            userDept.setDeptId(sysDept.getId());
+            sysUserDeptMapper.insert(userDept);
             log.info("负责人 {} 已添加到部门 {}", deptAddDTO.getLeaderId(), sysDept.getId());
         }
 
@@ -163,10 +166,10 @@ public class SysDeptServiceImpl implements SysDeptService {
 
         //如果修改了负责人用户ID，将该用户添加到部门
         if (deptUpdateDTO.getLeaderId() != null) {
-            LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(SysUser::getId, deptUpdateDTO.getLeaderId());
-            updateWrapper.set(SysUser::getDeptId, deptUpdateDTO.getId());
-            sysUserMapper.update(null, updateWrapper);
+            SysUserDept userDept = new SysUserDept();
+            userDept.setUserId(deptUpdateDTO.getLeaderId());
+            userDept.setDeptId(deptUpdateDTO.getId());
+            sysUserDeptMapper.insert(userDept);
             log.info("负责人 {} 已添加到部门 {}", deptUpdateDTO.getLeaderId(), deptUpdateDTO.getId());
         }
 
@@ -286,15 +289,28 @@ public class SysDeptServiceImpl implements SysDeptService {
             return Result.fail("用户ID列表不能为空");
         }
 
-        //批量更新用户的部门ID
-        LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(SysUser::getId, userIds);
-        updateWrapper.set(SysUser::getDeptId, deptId);
+        //批量关联用户到部门（插入关联记录，跳过已存在的关联）
+        int successCount = 0;
+        for (Long userId : userIds) {
+            //检查是否已存在关联，避免违反唯一约束
+            Long existCount = sysUserDeptMapper.selectCount(
+                    new LambdaQueryWrapper<SysUserDept>()
+                            .eq(SysUserDept::getUserId, userId)
+                            .eq(SysUserDept::getDeptId, deptId)
+            );
+            if (existCount > 0) {
+                log.warn("用户 {} 已关联到部门 {}，跳过", userId, deptId);
+                continue;
+            }
+            SysUserDept userDept = new SysUserDept();
+            userDept.setUserId(userId);
+            userDept.setDeptId(deptId);
+            sysUserDeptMapper.insert(userDept);
+            successCount++;
+        }
 
-        int updateCount = sysUserMapper.update(null, updateWrapper);
-
-        log.info("批量关联用户到部门成功, deptId: {}, userIds: {}, count: {}", deptId, userIds, updateCount);
-        return Result.success("成功关联" + updateCount + "个用户到部门", null);
+        log.info("批量关联用户到部门成功, deptId: {}, userIds: {}, successCount: {}", deptId, userIds, successCount);
+        return Result.success("成功关联" + successCount + "个用户到部门", null);
     }
 
     @Override
@@ -325,44 +341,56 @@ public class SysDeptServiceImpl implements SysDeptService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        //批量更新用户的部门ID
-        LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(SysUser::getId, userIds);
-        updateWrapper.set(SysUser::getDeptId, deptId);
+        //批量关联用户到部门（插入关联记录，跳过已存在的关联）
+        int successCount = 0;
+        for (Long userId : userIds) {
+            //检查是否已存在关联，避免违反唯一约束
+            Long existCount = sysUserDeptMapper.selectCount(
+                    new LambdaQueryWrapper<SysUserDept>()
+                            .eq(SysUserDept::getUserId, userId)
+                            .eq(SysUserDept::getDeptId, deptId)
+            );
+            if (existCount > 0) {
+                log.warn("用户 {} 已关联到部门 {}，跳过", userId, deptId);
+                continue;
+            }
+            SysUserDept userDept = new SysUserDept();
+            userDept.setUserId(userId);
+            userDept.setDeptId(deptId);
+            sysUserDeptMapper.insert(userDept);
+            successCount++;
+        }
 
-        int updateCount = sysUserMapper.update(null, updateWrapper);
-
-        log.info("根据角色批量关联用户到部门成功, deptId: {}, roleIds: {}, userIds: {}, count: {}", deptId, roleIds, userIds, updateCount);
-        return Result.success("成功关联" + updateCount + "个用户到部门", null);
+        log.info("根据角色批量关联用户到部门成功, deptId: {}, roleIds: {}, userIds: {}, count: {}", deptId, roleIds, userIds, successCount);
+        return Result.success("成功关联" + successCount + "个用户到部门", null);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> removeUsersFromDept(List<Long> userIds) {
+    public Result<Void> removeUsersFromDept(Long deptId, List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return Result.fail("用户ID列表不能为空");
         }
 
-        //批量移除用户的部门关联（设置为null）
-        LambdaUpdateWrapper<SysUser> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(SysUser::getId, userIds);
-        updateWrapper.set(SysUser::getDeptId, null);
+        //批量移除指定部门下的用户关联（删除关联记录）
+        LambdaQueryWrapper<SysUserDept> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(SysUserDept::getDeptId, deptId)
+                .in(SysUserDept::getUserId, userIds);
+        int deleteCount = sysUserDeptMapper.delete(deleteWrapper);
 
-        int updateCount = sysUserMapper.update(null, updateWrapper);
-
-        log.info("移除用户与部门关联成功, userIds: {}, count: {}", userIds, updateCount);
-        return Result.success("成功移除" + updateCount + "个用户", null);
+        log.info("移除用户与部门关联成功, deptId: {}, userIds: {}, count: {}", deptId, userIds, deleteCount);
+        return Result.success("成功移除" + deleteCount + "个用户", null);
     }
 
     @Override
     public List<Long> listUsersByDeptId(Long deptId) {
-        //查询部门下的用户ID列表
-        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysUser::getDeptId, deptId);
-        List<SysUser> users = sysUserMapper.selectList(wrapper);
+        //查询部门下的用户ID列表（通过关联表）
+        LambdaQueryWrapper<SysUserDept> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUserDept::getDeptId, deptId);
+        List<SysUserDept> userDepts = sysUserDeptMapper.selectList(wrapper);
 
-        return users.stream()
-                .map(SysUser::getId)
+        return userDepts.stream()
+                .map(SysUserDept::getUserId)
                 .collect(Collectors.toList());
     }
 

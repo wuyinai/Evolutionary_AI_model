@@ -43,9 +43,6 @@ public class UserAddDTO implements Serializable {
     //状态：0-禁用，1-启用
     private Integer status;
 
-    //部门ID，选填
-    private Long deptId;
-
     //备注，选填
     private String remark;
 

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `knowledge_document` (
     `file_size` BIGINT NOT NULL COMMENT '文件大小（字节）',
     `storage_path` VARCHAR(500) NOT NULL COMMENT 'MinIO存储路径',
     `embedding_model_id` BIGINT DEFAULT NULL COMMENT '向量模型配置ID',
+    `security_label_id` BIGINT DEFAULT NULL COMMENT '密级标签ID',
     `status` VARCHAR(20) DEFAULT 'PENDING' COMMENT '文档状态：PENDING-待处理 PROCESSING-处理中 COMPLETED-已完成 FAILED-失败',
     `chunk_count` INT DEFAULT 0 COMMENT '分块数量',
     `error_message` TEXT DEFAULT NULL COMMENT '错误信息',

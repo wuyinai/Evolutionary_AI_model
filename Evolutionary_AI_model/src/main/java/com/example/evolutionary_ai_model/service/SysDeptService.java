@@ -96,10 +96,11 @@ public interface SysDeptService {
     /**
      * 移除用户与部门的关联
      *
+     * @param deptId  部门ID
      * @param userIds 用户ID列表
      * @return 操作结果
      */
-    Result<Void> removeUsersFromDept(List<Long> userIds);
+    Result<Void> removeUsersFromDept(Long deptId, List<Long> userIds);
 
     /**
      * 查询部门下的用户列表

@@ -154,6 +154,16 @@ public class VectorStoreServiceImpl implements VectorStoreService {
                 });
                 metadata.put("documentName", documentName);
 
+                // 添加密级标签到元数据
+                if (chunk.getSecurityLabelId() != null) {
+                    metadata.put("securityLabelId", chunk.getSecurityLabelId().toString());
+                }
+
+                // 添加知识库ID到元数据（如果存在）
+                if (chunk.getKnowledgeBaseId() != null) {
+                    metadata.put("knowledgeBaseId", chunk.getKnowledgeBaseId().toString());
+                }
+
                 // 构建JsonObject
                 JsonObject row = new JsonObject();
                 row.addProperty("id", chunk.getId().toString());

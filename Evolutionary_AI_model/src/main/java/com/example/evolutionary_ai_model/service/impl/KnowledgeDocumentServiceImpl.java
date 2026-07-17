@@ -150,6 +150,8 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
                             chunk.setDocumentId(documentId);
                             chunk.setKnowledgeBaseId(document.getKnowledgeBaseId());
                             chunk.setUserId(document.getUserId());
+                            // 设置分块的密级，继承自文档
+                            chunk.setSecurityLabelId(document.getSecurityLabelId());
                             chunk.setChunkIndex(currentIndex);
                             chunk.setContent(chunkContent);
 
